@@ -1,7 +1,6 @@
 
-// Sidebar Profile - always show correct user
-
-import { useFakeAuth, demoToilSubmissions, calculateToilBalance, minToHM } from "@/mockData";
+import { useFakeAuth } from "@/contexts/FakeAuthContext";
+import { demoToilSubmissions, calculateToilBalance, minToHM } from "@/mockData";
 import { User as UserIcon } from "lucide-react";
 
 export default function SidebarProfile() {

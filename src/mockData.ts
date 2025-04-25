@@ -1,5 +1,3 @@
-// Enhanced Demo Data Types and Data
-
 import React from "react";
 
 export type Role = "employee" | "manager" | "admin";
@@ -63,23 +61,6 @@ export const demoUsers: User[] = [
     team: [],
   },
 ];
-
-// DEMO AUTH HOOK
-export function useFakeAuth() {
-  const [role, setRole] = React.useState<Role>("employee");
-  const [user, setUser] = React.useState<User>(demoUsers[0]);
-
-  React.useEffect(() => {
-    // Only update user if the role changed and user/role is mismatched
-    if (user.role !== role) {
-      const firstMatch = demoUsers.find((u) => u.role === role) || demoUsers[0];
-      setUser(firstMatch);
-    }
-  }, [role]);
-
-  // Support explicit setUser (for demo user picker)
-  return { user, role, setRole, setUser };
-}
 
 // ENHANCED DEMO TRANSACTIONS (WITH userId)
 export const demoToilSubmissions: ToilSubmission[] = [

@@ -13,6 +13,7 @@ import Approvals from "./pages/Approvals";
 import ToilHistory from "./pages/ToilHistory";
 import { AppSidebar } from "./components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { FakeAuthProvider } from "./contexts/FakeAuthContext";
 
 const queryClient = new QueryClient();
 
@@ -30,62 +31,63 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <AppLayout>
-                <Index />
-              </AppLayout>
-            }
-          />
-          <Route
-            path="/dashboard"
-            element={
-              <AppLayout>
-                <Dashboard />
-              </AppLayout>
-            }
-          />
-          <Route
-            path="/log-extra-hours"
-            element={
-              <AppLayout>
-                <LogExtraHours />
-              </AppLayout>
-            }
-          />
-          <Route
-            path="/request-toil"
-            element={
-              <AppLayout>
-                <RequestTOIL />
-              </AppLayout>
-            }
-          />
-          <Route
-            path="/approvals"
-            element={
-              <AppLayout>
-                <Approvals />
-              </AppLayout>
-            }
-          />
-          <Route
-            path="/toil-history"
-            element={
-              <AppLayout>
-                <ToilHistory />
-              </AppLayout>
-            }
-          />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <FakeAuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <AppLayout>
+                  <Index />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <AppLayout>
+                  <Dashboard />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/log-extra-hours"
+              element={
+                <AppLayout>
+                  <LogExtraHours />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/request-toil"
+              element={
+                <AppLayout>
+                  <RequestTOIL />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/approvals"
+              element={
+                <AppLayout>
+                  <Approvals />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/toil-history"
+              element={
+                <AppLayout>
+                  <ToilHistory />
+                </AppLayout>
+              }
+            />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </FakeAuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
 
 export default App;
-

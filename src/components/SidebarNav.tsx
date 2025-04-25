@@ -2,7 +2,8 @@
 import { SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { useLocation, Link } from "react-router-dom";
 import { List, Clock, FileText, Users } from "lucide-react";
-import { useFakeAuth, demoUsers } from "@/mockData";
+import { demoUsers } from "@/mockData";
+import { useFakeAuth } from "@/contexts/FakeAuthContext";
 import { useState } from "react";
 
 const navItems = [
