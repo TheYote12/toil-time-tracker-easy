@@ -1,4 +1,3 @@
-
 // Enhanced Demo Data Types and Data
 
 import React from "react";
@@ -71,12 +70,15 @@ export function useFakeAuth() {
   const [user, setUser] = React.useState<User>(demoUsers[0]);
 
   React.useEffect(() => {
-    setUser(
-      demoUsers.find((u) => u.role === role) || demoUsers[0]
-    );
+    // Only update user if the role changed and user/role is mismatched
+    if (user.role !== role) {
+      const firstMatch = demoUsers.find((u) => u.role === role) || demoUsers[0];
+      setUser(firstMatch);
+    }
   }, [role]);
 
-  return { user, role, setRole };
+  // Support explicit setUser (for demo user picker)
+  return { user, role, setRole, setUser };
 }
 
 // ENHANCED DEMO TRANSACTIONS (WITH userId)
@@ -211,4 +213,3 @@ export function minToHM(minutes: number) {
   const m = minutes % 60;
   return `${h}:${m.toString().padStart(2, "0")}`;
 }
-

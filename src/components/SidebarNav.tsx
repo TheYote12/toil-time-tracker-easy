@@ -2,9 +2,9 @@
 import { SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { useLocation, Link } from "react-router-dom";
 import { List, Clock, FileText, Users } from "lucide-react";
-import { useFakeAuth } from "@/mockData";
+import { useFakeAuth, demoUsers } from "@/mockData";
+import { useState } from "react";
 
-// Only icons specified in project context may be used.
 const navItems = [
   { title: "Dashboard", icon: List, to: "/dashboard" },
   { title: "Log Extra Hours", icon: Clock, to: "/log-extra-hours" },
@@ -13,8 +13,58 @@ const navItems = [
   { title: "TOIL History", icon: Clock, to: "/toil-history" },
 ];
 
+// Demo user login
+function UserPicker() {
+  const { role, setRole, user, setUser } = useFakeAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Split users by role
+  const managers = demoUsers.filter(u => u.role === "manager");
+  const employees = demoUsers.filter(u => u.role === "employee");
+
+  // Allow picking from a dropdown
+  return (
+    <div className="relative px-2 mt-4" aria-label="Switch user (demo)">
+      <span className="block text-xs text-gray-500 mb-1">Simulate Login:</span>
+      <button
+        onClick={() => setMenuOpen((v) => !v)}
+        className="w-full bg-gray-100 px-3 py-1 rounded text-sm flex items-center justify-between"
+      >
+        <span>
+          {user.name} <span className="ml-1 text-xs text-gray-500">({role})</span>
+        </span>
+        <span className="text-lg">▾</span>
+      </button>
+      {menuOpen && (
+        <div className="absolute z-10 left-0 right-0 bg-white border rounded shadow mt-1 text-sm max-h-52 overflow-auto">
+          <div className="px-2 py-1 text-gray-500 text-xs">Managers</div>
+          {managers.map((m) => (
+            <div
+              key={m.id}
+              onClick={() => { setRole("manager"); setUser(m); setMenuOpen(false); }}
+              className={`cursor-pointer px-3 py-1 hover:bg-purple-100 ${user.id === m.id ? "bg-purple-200" : ""}`}
+            >
+              {m.name}
+            </div>
+          ))}
+          <div className="px-2 py-1 text-gray-500 text-xs">Employees</div>
+          {employees.map((e) => (
+            <div
+              key={e.id}
+              onClick={() => { setRole("employee"); setUser(e); setMenuOpen(false); }}
+              className={`cursor-pointer px-3 py-1 hover:bg-purple-50 ${user.id === e.id ? "bg-purple-100" : ""}`}
+            >
+              {e.name}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SidebarNav() {
-  const { role, setRole } = useFakeAuth();
+  const { role } = useFakeAuth();
   const loc = useLocation();
   return (
     <>
@@ -34,11 +84,7 @@ export default function SidebarNav() {
               </SidebarMenuItem>
             ))}
         </SidebarMenu>
-        {/* Role switch for demo */}
-        <div className="flex gap-2 px-2 mt-4" aria-label="Switch role (demo)">
-          <button onClick={() => setRole("employee")} className={`px-3 py-1 rounded text-xs ${role === "employee" ? "bg-violet-600 text-white" : "bg-gray-200"}`}>Employee</button>
-          <button onClick={() => setRole("manager")} className={`px-3 py-1 rounded text-xs ${role === "manager" ? "bg-violet-600 text-white" : "bg-gray-200"}`}>Manager</button>
-        </div>
+        <UserPicker />
       </SidebarGroupContent>
     </>
   );
