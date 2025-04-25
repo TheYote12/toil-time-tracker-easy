@@ -1,8 +1,8 @@
-
 // Enhanced TOIL History page with fix for userId on submissions,
 // and managers see team history
 
-import { demoToilSubmissions, minToHM, useFakeAuth, demoUsers } from "@/mockData";
+import { demoToilSubmissions, minToHM, demoUsers } from "@/mockData";
+import { useFakeAuth } from "@/contexts/FakeAuthContext";
 import { useState } from "react";
 import { Search } from "lucide-react";
 
@@ -71,4 +71,3 @@ const ToilHistory = () => {
   );
 };
 export default ToilHistory;
-

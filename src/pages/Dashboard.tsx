@@ -1,5 +1,6 @@
 
-import { useFakeAuth, demoToilSubmissions, calculateToilBalance, minToHM, demoUsers } from "@/mockData";
+import { demoToilSubmissions, calculateToilBalance, minToHM, demoUsers } from "@/mockData";
+import { useFakeAuth } from "@/contexts/FakeAuthContext";
 import { Link } from "react-router-dom";
 import ManagerDashboardPanel from "@/components/ManagerDashboardPanel";
 import { ChartLine, ChartBar, ChartPie } from "lucide-react";

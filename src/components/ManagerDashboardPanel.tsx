@@ -1,7 +1,5 @@
-
-// Manager Dashboard Panel: Team Summary, Chart, and Recent Requests
-
-import { demoUsers, demoToilSubmissions, minToHM, useFakeAuth } from "@/mockData";
+import { demoUsers, demoToilSubmissions, minToHM } from "@/mockData";
+import { useFakeAuth } from "@/contexts/FakeAuthContext";
 import { Users, Clock, FileText, Bell, BarChart2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -108,4 +106,3 @@ export default function ManagerDashboardPanel() {
     </div>
   );
 }
-
