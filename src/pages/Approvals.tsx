@@ -3,10 +3,14 @@ import { demoToilSubmissions, minToHM } from "@/mockData";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Search } from "lucide-react";
 
 const Approvals = () => {
   // Only listing "Pending" - in the real app, filter for manager's team
-  const pending = demoToilSubmissions.filter(s => s.status === "Pending");
+  const [query, setQuery] = useState("");
+  const pending = demoToilSubmissions.filter(
+    s => s.status === "Pending" && (s.project?.toLowerCase().includes(query.toLowerCase()) || s.date.includes(query))
+  );
   const [selected, setSelected] = useState<string | null>(null);
   const [managerNote, setManagerNote] = useState("");
   const [action, setAction] = useState<"Approve" | "Reject" | null>(null);
@@ -15,6 +19,7 @@ const Approvals = () => {
   const current = demoToilSubmissions.find(s => s.id === selected);
 
   function handleAct(act: "Approve" | "Reject") {
+    if (!window.confirm(`Are you sure you want to ${act.toLowerCase()} this request?`)) return;
     setAction(act);
   }
   function handleDialogClose() {
@@ -26,6 +31,17 @@ const Approvals = () => {
   return (
     <div className="max-w-2xl mx-auto p-6">
       <h2 className="text-xl font-bold mb-3">Pending Approvals</h2>
+      <div className="flex items-center mb-2 gap-2">
+        <Search className="w-5 h-5" aria-hidden="true" />
+        <input
+          type="search"
+          className="border px-2 py-1 rounded w-64"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Search by project or date"
+          aria-label="Search approvals"
+        />
+      </div>
       <div className="bg-white p-4 rounded shadow">
         {pending.length === 0 ? (
           <div className="text-gray-600">No pending submissions right now!</div>
@@ -69,8 +85,8 @@ const Approvals = () => {
                 {current.notes && <div className="text-xs text-gray-400 mt-1">Notes: {current.notes}</div>}
               </div>
               <div>
-                <label className="block mb-1 text-sm font-medium">Manager Note (optional)</label>
-                <textarea className="border px-3 py-2 rounded w-full" rows={2} value={managerNote} onChange={e => setManagerNote(e.target.value)} />
+                <label className="block mb-1 text-sm font-medium" htmlFor="manager-note">Manager Note (optional)</label>
+                <textarea id="manager-note" className="border px-3 py-2 rounded w-full" rows={2} value={managerNote} onChange={e => setManagerNote(e.target.value)} />
               </div>
             </div>
           )}

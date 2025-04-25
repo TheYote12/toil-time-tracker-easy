@@ -20,7 +20,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => (
   <SidebarProvider>
     <div className="min-h-screen flex w-full bg-gray-50">
       <AppSidebar />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1" tabIndex={-1} aria-label="Main content">{children}</main>
     </div>
   </SidebarProvider>
 );
