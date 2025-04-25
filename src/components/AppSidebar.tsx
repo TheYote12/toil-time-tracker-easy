@@ -1,15 +1,15 @@
 
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { useLocation, Link } from "react-router-dom";
-import { list, clock, fileText } from "lucide-react";
+import { List, Clock, FileText } from "lucide-react";
 import { useFakeAuth } from "@/mockData";
 
 const navItems = [
-  { title: "Dashboard", icon: list, to: "/dashboard" },
-  { title: "Log Extra Hours", icon: clock, to: "/log-extra-hours" },
-  { title: "Request TOIL", icon: fileText, to: "/request-toil" },
-  { title: "Approvals", icon: list, to: "/approvals", managerOnly: true },
-  { title: "TOIL History", icon: clock, to: "/toil-history" },
+  { title: "Dashboard", icon: List, to: "/dashboard" },
+  { title: "Log Extra Hours", icon: Clock, to: "/log-extra-hours" },
+  { title: "Request TOIL", icon: FileText, to: "/request-toil" },
+  { title: "Approvals", icon: List, to: "/approvals", managerOnly: true },
+  { title: "TOIL History", icon: Clock, to: "/toil-history" },
 ];
 
 export function AppSidebar() {
