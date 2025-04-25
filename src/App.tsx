@@ -12,14 +12,17 @@ import RequestTOIL from "./pages/RequestTOIL";
 import Approvals from "./pages/Approvals";
 import ToilHistory from "./pages/ToilHistory";
 import { AppSidebar } from "./components/AppSidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 const queryClient = new QueryClient();
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => (
-  <div className="min-h-screen flex w-full bg-gray-50">
-    <AppSidebar />
-    <main className="flex-1">{children}</main>
-  </div>
+  <SidebarProvider>
+    <div className="min-h-screen flex w-full bg-gray-50">
+      <AppSidebar />
+      <main className="flex-1">{children}</main>
+    </div>
+  </SidebarProvider>
 );
 
 const App = () => (
@@ -85,3 +88,4 @@ const App = () => (
 );
 
 export default App;
+
