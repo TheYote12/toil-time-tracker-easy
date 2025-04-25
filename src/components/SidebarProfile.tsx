@@ -1,10 +1,11 @@
 
+// Sidebar Profile - filter userId
 import { useFakeAuth, demoToilSubmissions, calculateToilBalance, minToHM } from "@/mockData";
 import { User } from "lucide-react";
 
 export default function SidebarProfile() {
   const { user, role } = useFakeAuth();
-  // Show balance
+  // Show balance just for current user
   const balance = calculateToilBalance(demoToilSubmissions.filter(s => s.userId === user.id));
   return (
     <div className="flex items-center gap-3 px-2 py-3 rounded bg-gray-100 mb-1">
@@ -17,3 +18,4 @@ export default function SidebarProfile() {
     </div>
   );
 }
+

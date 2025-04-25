@@ -1,60 +1,111 @@
 
-import { demoToilSubmissions, minToHM } from "@/mockData";
-import { ChartContainer, ChartLegend, ChartTooltip } from "@/components/ui/chart";
-import { Users, TrendingUp, Bell } from "lucide-react";
+// Manager Dashboard Panel: Team Summary, Chart, and Recent Requests
+
+import { demoUsers, demoToilSubmissions, minToHM, useFakeAuth } from "@/mockData";
+import { Users, Clock, FileText, Bell, BarChart2 } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function ManagerDashboardPanel() {
-  // Show stats for manager in the dashboard
-  const pendingCount = demoToilSubmissions.filter(s => s.status === "Pending").length;
-  const approvedCount = demoToilSubmissions.filter(s => s.status === "Approved").length;
-  const rejectedCount = demoToilSubmissions.filter(s => s.status === "Rejected").length;
+  const { user: manager } = useFakeAuth();
+  const teamIds = manager.team || [];
+  const teamMembers = demoUsers.filter(u => u.role === "employee" && teamIds.includes(u.id));
 
-  // Aggregate by status for visualization
-  const chartData = [
-    { name: "Pending", value: pendingCount },
-    { name: "Approved", value: approvedCount },
-    { name: "Rejected", value: rejectedCount },
-  ];
+  // Team Requests
+  const teamRequests = demoToilSubmissions.filter(s => teamIds.includes(s.userId));
+  const pendingCount = teamRequests.filter(s => s.status === "Pending").length;
+  const approvedCount = teamRequests.filter(s => s.status === "Approved").length;
+  const rejectedCount = teamRequests.filter(s => s.status === "Rejected").length;
 
-  const config = {
-    Pending: { label: "Pending", color: "#fbbf24", icon: Bell },
-    Approved: { label: "Approved", color: "#22c55e", icon: TrendingUp },
-    Rejected: { label: "Rejected", color: "#ef4444", icon: Users },
+  // Recent requests
+  const recentRequests = [...teamRequests].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+
+  // Per member balance
+  const getUserName = (id: string) => demoUsers.find(u => u.id === id)?.name || id;
+  const getMemberBalance = (uid: string) => {
+    const subs = teamRequests.filter(s => s.userId === uid);
+    let balance = 0;
+    for (const sub of subs) {
+      if (sub.status !== "Approved") continue;
+      if (sub.type === "earn") balance += sub.amount;
+      if (sub.type === "use") balance -= sub.amount;
+    }
+    return balance;
   };
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 animate-fade-in">
       <div className="flex items-center gap-2 mb-2">
         <Users className="w-5 h-5 text-blue-600" />
-        <h3 className="font-semibold text-blue-700">Manager Insights</h3>
+        <h3 className="font-semibold text-blue-700">Manager Team Overview</h3>
       </div>
       <div className="text-blue-900 mb-1 text-xs">
-        Overview of the status of your team's TOIL activity. Review and approve pending requests below.
+        Track your team's current TOIL status at a glance and review recent activity.
       </div>
-      {/* Chart for managers */}
-      <ChartContainer config={config} className="bg-white rounded p-2 mt-2">
-        <svg width={280} height={100}>
-          {/* Custom bar chart for simplicity */}
-          {chartData.map((item, i) => (
-            <g key={item.name} transform={`translate(${i * 90 + 12},30)`}>
-              <rect
-                width="40"
-                height={item.value * 14}
-                y={60 - item.value * 14}
-                fill={config[item.name].color}
-                rx="6"
-              />
-              <text x="20" y="75" textAnchor="middle" className="text-xs fill-gray-700">{item.name}</text>
-              <text x="20" y={59 - item.value * 14} textAnchor="middle" className="text-xs fill-gray-800 font-bold">{item.value}</text>
-            </g>
+
+      {/* Team member summary */}
+      <div className="mb-4">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Current Balance</TableHead>
+              <TableHead>Last Request</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {teamMembers.map((member) => {
+              const lastSub = [...teamRequests]
+                .filter(s => s.userId === member.id)
+                .sort((a, b) => b.date.localeCompare(a.date))[0];
+              return (
+                <TableRow key={member.id}>
+                  <TableCell>{member.name}</TableCell>
+                  <TableCell>
+                    <span className="font-mono">{minToHM(getMemberBalance(member.id))}</span>
+                  </TableCell>
+                  <TableCell className="text-xs">{lastSub ? `${lastSub.date} (${lastSub.status})` : "-"}</TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Recent requests list */}
+      <div className="mb-2">
+        <div className="flex items-center gap-2 mb-1">
+          <BarChart2 className="w-4 h-4 text-blue-500" />
+          <span className="text-sm font-medium">Recent Team Requests</span>
+        </div>
+        <ul className="text-sm">
+          {recentRequests.map((req) => (
+            <li key={req.id} className="flex gap-2 items-baseline mb-1">
+              <span className="inline-block w-28 font-medium">{getUserName(req.userId)}</span>
+              <span className="mr-2">{req.type === "earn" ? "Earned" : "Used"}</span>
+              <span className="font-mono">{minToHM(req.amount)}</span>
+              <span className="text-xs text-gray-500">{req.date}</span>
+              <span className={`ml-2 text-xs ${req.status === "Pending" ? "text-yellow-600" : req.status === "Rejected" ? "text-red-600" : "text-green-600"}`}>
+                {req.status}
+              </span>
+              <span className="text-xs text-gray-400">{req.project ? `· ${req.project}` : ""}</span>
+            </li>
           ))}
-        </svg>
-        <ChartLegend payload={chartData.map(d => ({ value: d.name, color: config[d.name].color }))} />
-      </ChartContainer>
-      <div className="mt-3 text-sm">
-        <b>{pendingCount}</b> requests pending <span aria-label="approval">🕒</span>
+        </ul>
       </div>
-      <div className="mt-2 text-xs text-gray-500">Tip: Approve or reject requests in the Approvals tab to keep your team's TOIL balanced.</div>
+
+      <div className="flex gap-5 text-xs mt-2">
+        <div className="bg-yellow-200 text-yellow-900 px-3 py-1 rounded">
+          <Bell className="inline-block w-3 h-3 mr-1" /> {pendingCount} Pending
+        </div>
+        <div className="bg-green-100 text-green-900 px-3 py-1 rounded">
+          <Clock className="inline-block w-3 h-3 mr-1" /> {approvedCount} Approved
+        </div>
+        <div className="bg-red-100 text-red-900 px-3 py-1 rounded">
+          <FileText className="inline-block w-3 h-3 mr-1" /> {rejectedCount} Rejected
+        </div>
+      </div>
+      <div className="mt-2 text-xs text-gray-500">Tip: Approve or reject requests in the Approvals tab.</div>
     </div>
   );
 }
+

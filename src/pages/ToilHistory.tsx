@@ -1,13 +1,26 @@
-import { demoToilSubmissions, minToHM, useFakeAuth } from "@/mockData";
+
+// Enhanced TOIL History page with fix for userId on submissions,
+// and managers see team history
+
+import { demoToilSubmissions, minToHM, useFakeAuth, demoUsers } from "@/mockData";
 import { useState } from "react";
 import { Search } from "lucide-react";
 
 const ToilHistory = () => {
-  const { user } = useFakeAuth();
+  const { user, role } = useFakeAuth();
   const [query, setQuery] = useState("");
-  const filtered = demoToilSubmissions.filter(
-    s => s.userId === user.id && (s.project?.toLowerCase().includes(query.toLowerCase()) || s.date.includes(query))
-  );
+  // If manager, show their whole team's history. Otherwise, just own.
+  const userIds = role === "manager" && user.team ? user.team : [user.id];
+  const filtered = demoToilSubmissions
+    .filter(
+      s =>
+        userIds.includes(s.userId) &&
+        ((s.project?.toLowerCase().includes(query.toLowerCase()) || s.date.includes(query)))
+    )
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  const getUserName = (id: string) => demoUsers.find(u => u.id === id)?.name || "";
+
   return (
     <div className="max-w-2xl mx-auto p-6">
       <h2 className="text-xl font-bold mb-3">TOIL History</h2>
@@ -30,7 +43,12 @@ const ToilHistory = () => {
             {filtered.map(s => (
               <li key={s.id} className="border-b last:border-0 py-3 flex items-center gap-4">
                 <div className="flex-1">
-                  <div className="font-semibold">{s.type === "earn" ? "Extra Hours" : "TOIL Request"}</div>
+                  <div className="font-semibold">
+                    {s.type === "earn" ? "Extra Hours" : "TOIL Request"}
+                    {role === "manager" && (
+                      <span className="text-xs text-gray-400 ml-2">({getUserName(s.userId)})</span>
+                    )}
+                  </div>
                   <div className="text-gray-700 text-sm">{s.date} {s.project && `· ${s.project}`}</div>
                   <div className="text-gray-500 text-xs mt-1">
                     {s.type === "earn" && s.startTime && s.endTime ? (
@@ -53,3 +71,4 @@ const ToilHistory = () => {
   );
 };
 export default ToilHistory;
+
