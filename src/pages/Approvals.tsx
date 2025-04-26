@@ -1,11 +1,14 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search } from "lucide-react";
+import { Search, AlertTriangle } from "lucide-react";
 import { minToHM } from "./RequestTOIL";
 import { format } from "date-fns";
+import { AuditTrail } from "@/components/AuditTrail";
+import { useToast } from "@/hooks/use-toast";
 
 type ToilSubmission = {
   id: string;
@@ -29,13 +32,15 @@ type Profile = {
 
 const Approvals = () => {
   const { user, isManager } = useAuth();
+  const { toast } = useToast();
   const [query, setQuery] = useState("");
   const [pending, setPending] = useState<ToilSubmission[]>([]);
   const [profiles, setProfiles] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<string | null>(null);
   const [managerNote, setManagerNote] = useState("");
-  const [action, setAction] = useState<"Approved" | "Rejected" | null>(null); // Changed from "Approve" | "Reject"
+  const [action, setAction] = useState<"Approved" | "Rejected" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [teamBalances, setTeamBalances] = useState<Record<string, number>>({});
   
   useEffect(() => {
     async function fetchPendingApprovals() {
@@ -79,6 +84,34 @@ const Approvals = () => {
         }
         
         setPending(pendingSubmissions as ToilSubmission[]);
+        
+        // Calculate current balances for the team
+        const { data: allSubmissions, error: allSubsError } = await supabase
+          .from('toil_submissions')
+          .select('*')
+          .in('user_id', teamIds)
+          .eq('status', 'Approved');
+          
+        if (allSubsError) {
+          console.error("Error fetching all submissions:", allSubsError);
+          return;
+        }
+        
+        const balances: Record<string, number> = {};
+        
+        teamIds.forEach(id => {
+          balances[id] = 0;
+        });
+        
+        allSubmissions?.forEach(sub => {
+          if (sub.type === 'earn') {
+            balances[sub.user_id] += sub.amount;
+          } else {
+            balances[sub.user_id] -= sub.amount;
+          }
+        });
+        
+        setTeamBalances(balances);
       } catch (error) {
         console.error("Unexpected error:", error);
       }
@@ -96,7 +129,7 @@ const Approvals = () => {
   const open = !!selected;
   const current = pending.find(s => s.id === selected);
   
-  async function handleAction(act: "Approved" | "Rejected") { // Changed parameter type
+  async function handleAction(act: "Approved" | "Rejected") {
     if (!window.confirm(`Are you sure you want to ${act.toLowerCase()} this request?`)) return;
     
     if (!user || !current) return;
@@ -115,9 +148,22 @@ const Approvals = () => {
         
       if (error) {
         console.error(`Error ${act.toLowerCase()}ing submission:`, error);
+        toast({
+          title: "Update Failed",
+          description: `Could not ${act.toLowerCase()} the request. Please try again.`,
+          variant: "destructive"
+        });
       } else {
         // Update the local state
         setPending(prev => prev.filter(p => p.id !== current.id));
+        
+        // Show success toast
+        toast({
+          title: `Request ${act}`,
+          description: `The TOIL request has been ${act.toLowerCase()}.`,
+          duration: 3000,
+        });
+        
         setTimeout(() => {
           setSelected(null);
           setManagerNote("");
@@ -138,9 +184,25 @@ const Approvals = () => {
       setAction(null);
     }
   }
+  
+  function getCurrentUserBalance(userId: string) {
+    // Get current balance
+    const balance = teamBalances[userId] || 0;
+    
+    // Calculate projected balance if this request is approved
+    let projectedBalance = balance;
+    if (current) {
+      if (current.type === 'earn') {
+        projectedBalance += current.amount;
+      } else {
+        projectedBalance -= current.amount;
+      }
+    }
+    
+    return { balance, projectedBalance };
+  }
 
   return (
-    // ... keep existing JSX the same, but update button calls to handleAction
     <div className="max-w-2xl mx-auto p-6">
       <h2 className="text-xl font-bold mb-3">Pending Approvals</h2>
       {!isManager ? (
@@ -204,10 +266,10 @@ const Approvals = () => {
         </>
       )}
       <Dialog open={open} onOpenChange={handleDialogClose}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Review Submission</DialogTitle></DialogHeader>
           {current && (
-            <div>
+            <div className="space-y-4">
               <div className="mb-2">
                 <div>
                   <span className="font-bold">{current.type === "earn" ? "Extra Hours" : "TOIL Request"}</span>
@@ -216,8 +278,34 @@ const Approvals = () => {
                 <div className="text-gray-700 text-sm mt-1">
                   Amount: <span className="font-mono">{minToHM(current.amount)}</span>
                 </div>
-                {current.notes && <div className="text-xs text-gray-400 mt-1">Notes: {current.notes}</div>}
+                {current.notes && <div className="text-xs text-gray-600 mt-1">Notes: {current.notes}</div>}
               </div>
+              
+              {/* Display current and projected balance */}
+              <div className="p-3 bg-gray-50 rounded-md">
+                <div className="text-sm font-medium mb-1">Balance Information</div>
+                {current && (
+                  <div className="space-y-1">
+                    <div className="text-xs text-gray-600">
+                      Current balance for {profiles[current.user_id]}:{" "}
+                      <span className="font-mono font-semibold">{minToHM(getCurrentUserBalance(current.user_id).balance)}</span>
+                    </div>
+                    <div className="text-xs">
+                      Projected balance after {current.type === "earn" ? "adding" : "using"} hours:{" "}
+                      <span className="font-mono font-semibold">{minToHM(getCurrentUserBalance(current.user_id).projectedBalance)}</span>
+                      
+                      {/* Warning if using hours would result in negative balance */}
+                      {current.type === "use" && getCurrentUserBalance(current.user_id).projectedBalance < 0 && (
+                        <div className="flex items-center gap-1 text-amber-600 mt-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          <span>This request would result in a negative TOIL balance.</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
               <div>
                 <label className="block mb-1 text-sm font-medium" htmlFor="manager-note">Manager Note (optional)</label>
                 <textarea 
@@ -228,6 +316,11 @@ const Approvals = () => {
                   onChange={e => setManagerNote(e.target.value)}
                   disabled={isSubmitting}
                 />
+              </div>
+              
+              {/* Audit trail for this specific submission */}
+              <div className="pt-3 border-t">
+                <AuditTrail submissionId={current.id} />
               </div>
             </div>
           )}
@@ -242,14 +335,14 @@ const Approvals = () => {
             </Button>
             <Button 
               className="bg-green-600 hover:bg-green-700 text-white"
-              onClick={() => handleAction("Approved")} // Changed from "Approve"
+              onClick={() => handleAction("Approved")}
               disabled={isSubmitting}
             >
               {isSubmitting && action === "Approved" ? "Approving..." : "Approve"}
             </Button>
             <Button 
               className="bg-red-600 hover:bg-red-700 text-white"
-              onClick={() => handleAction("Rejected")} // Changed from "Reject"
+              onClick={() => handleAction("Rejected")}
               disabled={isSubmitting}
             >
               {isSubmitting && action === "Rejected" ? "Rejecting..." : "Reject"}

@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import { AppSidebar } from "./components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { NotificationSystem } from "./components/NotificationSystem";
 
 const queryClient = new QueryClient();
 
@@ -30,7 +31,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/auth" replace />;
   }
   
-  return <>{children}</>;
+  return (
+    <>
+      <NotificationSystem />
+      {children}
+    </>
+  );
 };
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => (

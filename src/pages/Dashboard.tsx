@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +6,9 @@ import { ChartLine, ChartBar, ChartPie } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 import { minToHM } from "./RequestTOIL";
 import { format } from "date-fns";
+import { ManagerAnalyticsPanel } from "@/components/ManagerAnalyticsPanel";
+import { TOILPolicyGuide } from "@/components/TOILPolicyGuide";
+import { NotificationSystem } from "@/components/NotificationSystem";
 
 type ToilSubmission = {
   id: string;
@@ -104,7 +106,7 @@ const Dashboard = () => {
     fetchDashboardData();
   }, [user, isManager]);
 
-  // Create data for charts
+  // Create data for charts (keep existing code)
   const chartLineData = useMemo(() => {
     return recentSubmissions.map(s => ({
       name: format(new Date(s.date), "MMM d"),
@@ -147,13 +149,22 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
+    <div className="p-6 max-w-5xl mx-auto">
+      <NotificationSystem />
+      
+      <TOILPolicyGuide />
+      
       <div className="mb-8">
         <h2 className="text-2xl font-bold mb-2">Welcome{user?.user_metadata.name ? `, ${user.user_metadata.name}` : ''}</h2>
         <div className="flex items-center gap-4 mb-4">
           <div className="bg-purple-100 border border-purple-200 text-purple-700 rounded-lg px-5 py-4 flex-1 flex items-center justify-between">
             <span className="font-semibold text-lg">Current TOIL Balance</span>
-            <span className="text-3xl font-mono font-bold">{minToHM(balance)}</span>
+            <div className="flex flex-col items-end">
+              <span className="text-3xl font-mono font-bold">{minToHM(balance)}</span>
+              {balance > 35 * 60 && (
+                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">Approaching limit</span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -190,60 +201,9 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {isManager && teamMembers.length > 0 && (
+      {isManager && (
         <div className="mb-8 space-y-4">
-          {/* Team Status Pie */}
-          <div className="bg-white rounded border p-4">
-            <div className="flex items-center mb-1 gap-2">
-              <ChartPie className="w-4 h-4 text-pink-500" />
-              <span className="text-sm font-medium">Requests by Status</span>
-            </div>
-            {statusPieData.length > 0 ? (
-              <ResponsiveContainer width="95%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={statusPieData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={60}
-                    label
-                  >
-                    {statusPieData.map((entry, idx) => (
-                      <Cell key={entry.name} fill={pieColors[idx % pieColors.length]} />
-                    ))}
-                  </Pie>
-                  <Legend />
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <span className="text-xs text-gray-500">No team requests yet.</span>
-            )}
-          </div>
-
-          {/* Team Earned/Used Bar */}
-          <div className="bg-white rounded border p-4">
-            <div className="flex items-center mb-1 gap-2">
-              <ChartBar className="w-4 h-4 text-green-500" />
-              <span className="text-sm font-medium">TOIL Earned / Used by Team Member</span>
-            </div>
-            {barData.length > 0 ? (
-              <ResponsiveContainer width="99%" height={260}>
-                <BarChart data={barData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => minToHM(value as number)} />
-                  <Legend />
-                  <Bar dataKey="Earned" stackId="a" fill="#a78bfa" />
-                  <Bar dataKey="Used" stackId="a" fill="#fbbf24" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <span className="text-xs text-gray-500">No activity for direct reports.</span>
-            )}
-          </div>
+          <ManagerAnalyticsPanel />
         </div>
       )}
 
