@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,6 +25,15 @@ type TimelineData = {
 };
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#a5b4fc', '#f472b6'];
+
+const ChartWrapper = ({ children, config }: { children: React.ReactNode; config: any }) => (
+  <ChartContainer config={config}>
+    {children}
+    <ChartLegend>
+      <ChartLegendContent />
+    </ChartLegend>
+  </ChartContainer>
+);
 
 export function ManagerAnalyticsPanel() {
   const { user, isManager } = useAuth();
@@ -300,7 +308,7 @@ export function ManagerAnalyticsPanel() {
           </CardHeader>
           <CardContent className="h-80">
             {timelineData.length > 0 ? (
-              <ChartContainer config={barConfig}>
+              <ChartWrapper config={barConfig}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={timelineData}
@@ -326,10 +334,7 @@ export function ManagerAnalyticsPanel() {
                     <Bar dataKey="used" name="Used" stackId="a" fill="var(--color-used)" />
                   </BarChart>
                 </ResponsiveContainer>
-                <ChartLegend>
-                  <ChartLegendContent />
-                </ChartLegend>
-              </ChartContainer>
+              </ChartWrapper>
             ) : (
               <div className="flex items-center justify-center h-full text-gray-500">
                 No activity data available

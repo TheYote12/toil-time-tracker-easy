@@ -33,16 +33,24 @@ export function AuditTrail({ submissionId }: { submissionId?: string }) {
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    // In a real implementation, we would fetch from an audit_logs table
-    // This is a mock implementation for demonstration purposes
     async function fetchAuditTrail() {
       setLoading(true);
       
       try {
-        // Simulating an audit trail based on TOIL submissions
+        // First fetch user profiles to get names
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, name');
+        
+        const profileMap = profiles?.reduce((acc: Record<string, string>, profile) => {
+          acc[profile.id] = profile.name;
+          return acc;
+        }, {}) || {};
+
+        // Then fetch submissions
         const query = supabase
           .from('toil_submissions')
-          .select('*, profiles:user_id(name)')
+          .select('*')
           .order('created_at', { ascending: false })
           .limit(50);
           
@@ -58,7 +66,7 @@ export function AuditTrail({ submissionId }: { submissionId?: string }) {
           query.eq('status', 'Pending');
         }
         
-        const { data, error } = await query;
+        const { data: submissions, error } = await query;
         
         if (error) {
           console.error("Error fetching audit trail:", error);
@@ -66,7 +74,7 @@ export function AuditTrail({ submissionId }: { submissionId?: string }) {
         }
         
         // Transform submissions into audit entries
-        const auditEntries: AuditEntry[] = data?.map(submission => ({
+        const auditEntries: AuditEntry[] = submissions?.map(submission => ({
           id: `${submission.id}-${submission.status}`,
           submission_id: submission.id,
           user_id: submission.user_id,
@@ -76,7 +84,7 @@ export function AuditTrail({ submissionId }: { submissionId?: string }) {
           old_status: 'Pending',
           new_status: submission.status,
           timestamp: submission.created_at,
-          user_name: submission.profiles?.name || 'Unknown User'
+          user_name: profileMap[submission.user_id] || 'Unknown User'
         })) || [];
         
         setEntries(auditEntries.filter(entry => 
