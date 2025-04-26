@@ -9,9 +9,85 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      backup_logs: {
+        Row: {
+          created_at: string | null
+          file_name: string | null
+          id: string
+          operation_type: string
+          performed_by: string
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_name?: string | null
+          id?: string
+          operation_type: string
+          performed_by: string
+          status: string
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string | null
+          id?: string
+          operation_type?: string
+          performed_by?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      departments: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      organization_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          max_toil_hours: number
+          name: string
+          requires_manager_approval: boolean | null
+          toil_expiry_days: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          max_toil_hours?: number
+          name?: string
+          requires_manager_approval?: boolean | null
+          toil_expiry_days?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          max_toil_hours?: number
+          name?: string
+          requires_manager_approval?: boolean | null
+          toil_expiry_days?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
+          department_id: string | null
           id: string
           manager_id: string | null
           name: string
@@ -19,6 +95,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          department_id?: string | null
           id: string
           manager_id?: string | null
           name: string
@@ -26,12 +103,21 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          department_id?: string | null
           id?: string
           manager_id?: string | null
           name?: string
           role?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       toil_submissions: {
         Row: {
@@ -83,7 +169,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      backup_data: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      restore_data: {
+        Args: { backup_data: Json }
+        Returns: boolean
+      }
     }
     Enums: {
       request_status: "Pending" | "Approved" | "Rejected"
