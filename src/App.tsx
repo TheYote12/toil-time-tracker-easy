@@ -12,7 +12,7 @@ import RequestTOIL from "./pages/RequestTOIL";
 import Approvals from "./pages/Approvals";
 import ToilHistory from "./pages/ToilHistory";
 import { AppSidebar } from "./components/AppSidebar";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { FakeAuthProvider } from "./contexts/FakeAuthContext";
 
 const queryClient = new QueryClient();
@@ -20,7 +20,12 @@ const queryClient = new QueryClient();
 const AppLayout = ({ children }: { children: React.ReactNode }) => (
   <SidebarProvider>
     <div className="min-h-screen flex w-full bg-gray-50">
+      {/* Sidebar menu */}
       <AppSidebar />
+      {/* Show trigger for mobile only */}
+      <div className="md:hidden absolute top-2 left-2 z-50">
+        <SidebarTrigger />
+      </div>
       <main className="flex-1" tabIndex={-1} aria-label="Main content">{children}</main>
     </div>
   </SidebarProvider>
@@ -91,3 +96,4 @@ const App = () => (
 );
 
 export default App;
+
