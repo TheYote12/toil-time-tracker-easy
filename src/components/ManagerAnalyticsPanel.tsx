@@ -1,42 +1,16 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Chart, ChartBar, ChartPie, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 import { minToHM } from "@/pages/RequestTOIL";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import {
-  Chart as ChartPrimitive,
-  ChartContainer,
-  ChartContent,
-  ChartDescription,
-  ChartHeader,
-  ChartLabel,
-  ChartLead,
-  ChartLegend,
-  ChartLegendBadge,
-  ChartLegendContent,
-  ChartLine,
-  ChartTitle,
-  ChartTooltip,
-  useChartContext,
-} from "@/components/ui/chart"
-
-const ChartWrapper = ({ children, config }: { children: React.ReactElement; config: any }) => (
-  <ChartContainer config={config}>
-    {children}
-    <ChartLegend>
-      <ChartLegendContent />
-    </ChartLegend>
-  </ChartContainer>
-);
+} from "@/components/ui/card";
 
 export function ManagerAnalyticsPanel() {
   const { user } = useAuth();

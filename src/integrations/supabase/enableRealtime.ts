@@ -2,13 +2,11 @@
 import { supabase } from "./client";
 
 export async function enableRealtimeForTables() {
-  // Enable realtime for the toil_submissions table
-  const { error } = await supabase.rpc('enable_realtime', {
+  // Enable realtime for toil_submissions by setting replica identity
+  await supabase.rpc('alter_table_replica_identity', {
     table_name: 'toil_submissions',
-    schema_name: 'public'
+    replica_identity: 'FULL'
   });
   
-  if (error) {
-    console.error("Error enabling realtime:", error);
-  }
+  console.log("Realtime enabled for toil_submissions");
 }
