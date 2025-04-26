@@ -9,7 +9,75 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          id: string
+          manager_id: string | null
+          name: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          manager_id?: string | null
+          name: string
+          role: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          manager_id?: string | null
+          name?: string
+          role?: string
+        }
+        Relationships: []
+      }
+      toil_submissions: {
+        Row: {
+          amount: number
+          created_at: string
+          date: string
+          end_time: string | null
+          id: string
+          manager_note: string | null
+          notes: string | null
+          project: string | null
+          start_time: string | null
+          status: Database["public"]["Enums"]["request_status"]
+          type: Database["public"]["Enums"]["request_type"]
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          date: string
+          end_time?: string | null
+          id?: string
+          manager_note?: string | null
+          notes?: string | null
+          project?: string | null
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          type: Database["public"]["Enums"]["request_type"]
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          date?: string
+          end_time?: string | null
+          id?: string
+          manager_note?: string | null
+          notes?: string | null
+          project?: string | null
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          type?: Database["public"]["Enums"]["request_type"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +86,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      request_status: "Pending" | "Approved" | "Rejected"
+      request_type: "earn" | "use"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +202,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      request_status: ["Pending", "Approved", "Rejected"],
+      request_type: ["earn", "use"],
+    },
   },
 } as const

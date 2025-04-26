@@ -5,24 +5,30 @@ import { CalendarIcon, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { useToast, toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const defaultContractedMins = 8 * 60;
+const projectList = ["Client X Rollout", "Internal Update", "Support"];
 
 function roundDown15(dt: Date) {
   const copy = new Date(dt);
   copy.setMinutes(Math.floor(copy.getMinutes() / 15) * 15, 0, 0);
   return copy;
 }
+
 function roundUp15(dt: Date) {
   const copy = new Date(dt);
   copy.setMinutes(Math.ceil(copy.getMinutes() / 15) * 15, 0, 0);
   return copy;
 }
+
 function diffMins(start: Date, end: Date) {
   return Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000));
 }
+
 export function minToHM(minutes: number) {
   if (minutes < 0) return "0:00";
   const h = Math.floor(minutes / 60);
@@ -30,9 +36,8 @@ export function minToHM(minutes: number) {
   return `${h}:${m.toString().padStart(2, "0")}`;
 }
 
-const projectList = ["Client X Rollout", "Internal Update", "Support"];
-
 const LogExtraHours = () => {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [date, setDate] = React.useState<Date | undefined>();
   const [project, setProject] = React.useState("");
@@ -40,6 +45,7 @@ const LogExtraHours = () => {
   const [endTime, setEndTime] = React.useState("");
   const [weekend, setWeekend] = React.useState(false);
   const [notes, setNotes] = React.useState("");
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // Calculate things
   let canPreview = date && startTime && endTime;
@@ -48,21 +54,78 @@ const LogExtraHours = () => {
   let duration = (roundedStart && roundedEnd && roundedEnd > roundedStart) ? diffMins(roundedStart, roundedEnd) : 0;
   let earned = weekend ? duration : Math.max(0, duration - defaultContractedMins);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    toast({
-      title: "Submission created (demo)",
-      description: (
-        <>
-          <div>Date: {date ? format(date, "PPP") : ""}</div>
-          <div>Project: {project}</div>
-          <div>
-            Time: {startTime} - {endTime} → {roundedStart ? format(roundedStart, "HH:mm") : ""} ~ {roundedEnd ? format(roundedEnd, "HH:mm") : ""} ({minToHM(duration)})
-          </div>
-          <div className="text-green-700 font-semibold">Hours Earned: {minToHM(earned)}</div>
-        </>
-      )
-    });
+    
+    if (!user || !date || !startTime || !endTime || earned <= 0) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Format date for Postgres
+      const formattedDate = format(date, "yyyy-MM-dd");
+      
+      const { error } = await supabase
+        .from('toil_submissions')
+        .insert({
+          user_id: user.id,
+          type: 'earn',
+          date: formattedDate,
+          project,
+          amount: earned,
+          start_time: startTime,
+          end_time: endTime,
+          notes,
+          status: 'Pending'
+        });
+        
+      if (error) {
+        console.error("Error submitting TOIL:", error);
+        toast({
+          title: "Submission failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Submission successful",
+          description: (
+            <>
+              <div>Date: {date ? format(date, "PPP") : ""}</div>
+              <div>Project: {project}</div>
+              <div>
+                Time: {startTime} - {endTime} → {roundedStart ? format(roundedStart, "HH:mm") : ""} ~ {roundedEnd ? format(roundedEnd, "HH:mm") : ""} ({minToHM(duration)})
+              </div>
+              <div className="text-green-700 font-semibold">Hours Earned: {minToHM(earned)}</div>
+            </>
+          )
+        });
+        
+        // Reset form
+        setDate(undefined);
+        setProject("");
+        setStartTime("");
+        setEndTime("");
+        setWeekend(false);
+        setNotes("");
+      }
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      toast({
+        title: "An unexpected error occurred",
+        description: "Please try again later",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -153,7 +216,13 @@ const LogExtraHours = () => {
             </div>
           </div>
         )}
-        <Button type="submit" className="w-full bg-violet-600 hover:bg-violet-700 text-white py-2 rounded text-lg font-semibold">Submit for Approval</Button>
+        <Button 
+          type="submit" 
+          className="w-full bg-violet-600 hover:bg-violet-700 text-white py-2 rounded text-lg font-semibold"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Submitting..." : "Submit for Approval"}
+        </Button>
       </form>
     </div>
   );
