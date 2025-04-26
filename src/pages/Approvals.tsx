@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,7 +34,7 @@ const Approvals = () => {
   const [profiles, setProfiles] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<string | null>(null);
   const [managerNote, setManagerNote] = useState("");
-  const [action, setAction] = useState<"Approve" | "Reject" | null>(null);
+  const [action, setAction] = useState<"Approved" | "Rejected" | null>(null); // Changed from "Approve" | "Reject"
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   useEffect(() => {
@@ -97,7 +96,7 @@ const Approvals = () => {
   const open = !!selected;
   const current = pending.find(s => s.id === selected);
   
-  async function handleAction(act: "Approve" | "Reject") {
+  async function handleAction(act: "Approved" | "Rejected") { // Changed parameter type
     if (!window.confirm(`Are you sure you want to ${act.toLowerCase()} this request?`)) return;
     
     if (!user || !current) return;
@@ -141,6 +140,7 @@ const Approvals = () => {
   }
 
   return (
+    // ... keep existing JSX the same, but update button calls to handleAction
     <div className="max-w-2xl mx-auto p-6">
       <h2 className="text-xl font-bold mb-3">Pending Approvals</h2>
       {!isManager ? (
@@ -242,22 +242,22 @@ const Approvals = () => {
             </Button>
             <Button 
               className="bg-green-600 hover:bg-green-700 text-white"
-              onClick={() => handleAction("Approve")}
+              onClick={() => handleAction("Approved")} // Changed from "Approve"
               disabled={isSubmitting}
             >
-              {isSubmitting && action === "Approve" ? "Approving..." : "Approve"}
+              {isSubmitting && action === "Approved" ? "Approving..." : "Approve"}
             </Button>
             <Button 
               className="bg-red-600 hover:bg-red-700 text-white"
-              onClick={() => handleAction("Reject")}
+              onClick={() => handleAction("Rejected")} // Changed from "Reject"
               disabled={isSubmitting}
             >
-              {isSubmitting && action === "Reject" ? "Rejecting..." : "Reject"}
+              {isSubmitting && action === "Rejected" ? "Rejecting..." : "Reject"}
             </Button>
           </DialogFooter>
           {action && !isSubmitting && (
             <div className="mt-2 text-center text-lg font-semibold text-green-800">
-              {action === "Approve" ? "Approved!" : "Rejected!"}
+              {action === "Approved" ? "Approved!" : "Rejected!"}
             </div>
           )}
         </DialogContent>
