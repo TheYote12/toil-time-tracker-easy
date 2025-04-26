@@ -44,7 +44,7 @@ export const demoUsers: User[] = [
   },
   {
     id: "m-1",
-    name: "Megan Manager",
+    name: "Alex Eason", // Updated from "Megan Manager"
     role: "manager",
     team: ["e-1", "e-2", "e-3"],
   },
