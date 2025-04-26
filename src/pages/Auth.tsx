@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function Auth() {
   const { user, signIn, signUp } = useAuth();
@@ -15,6 +17,17 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFirstUser, setIsFirstUser] = useState<boolean | null>(null);
+  
+  useEffect(() => {
+    async function checkFirstUser() {
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+      setIsFirstUser(count === 0);
+    }
+    checkFirstUser();
+  }, []);
   
   // If already logged in, redirect to dashboard
   if (user) {
@@ -51,6 +64,14 @@ export default function Auth() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {isFirstUser && (
+            <Alert className="mb-6">
+              <AlertDescription>
+                Welcome! As the first user, you'll be set up as a manager and guided through the organization setup process.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <Tabs defaultValue="login">
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="login">Login</TabsTrigger>
@@ -72,9 +93,7 @@ export default function Auth() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password">Password</Label>
-                    </div>
+                    <Label htmlFor="password">Password</Label>
                     <Input
                       id="password"
                       type="password"
