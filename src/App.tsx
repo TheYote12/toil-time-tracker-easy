@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,13 +19,12 @@ const queryClient = new QueryClient();
 const AppLayout = ({ children }: { children: React.ReactNode }) => (
   <SidebarProvider>
     <div className="min-h-screen flex w-full bg-gray-50">
-      {/* Sidebar menu */}
       <AppSidebar />
-      {/* Show trigger for mobile only */}
-      <div className="md:hidden absolute top-2 left-2 z-50">
-        <SidebarTrigger />
+      {/* Show trigger for mobile only, with improved visibility */}
+      <div className="md:hidden fixed top-4 left-4 z-50 bg-white rounded-lg shadow-lg p-2">
+        <SidebarTrigger className="text-purple-600 hover:text-purple-700" />
       </div>
-      <main className="flex-1" tabIndex={-1} aria-label="Main content">{children}</main>
+      <main className="flex-1 pt-16 md:pt-0" tabIndex={-1} aria-label="Main content">{children}</main>
     </div>
   </SidebarProvider>
 );
@@ -96,4 +94,3 @@ const App = () => (
 );
 
 export default App;
-

@@ -44,19 +44,43 @@ export const demoUsers: User[] = [
   },
   {
     id: "m-1",
-    name: "Alex Eason", // Updated from "Megan Manager"
+    name: "Alex Eason",
     role: "manager",
-    team: ["e-1", "e-2", "e-3"],
+    team: ["e-1", "e-2", "e-3", "e-5", "e-6"],
   },
   {
     id: "m-2",
     name: "Michael Manager",
     role: "manager",
-    team: ["e-4"],
+    team: ["e-4", "e-7", "e-8"],
   },
   {
     id: "e-4",
     name: "Danielle Developer",
+    role: "employee",
+    team: [],
+  },
+  {
+    id: "e-5",
+    name: "Emma Edwards",
+    role: "employee",
+    team: [],
+  },
+  {
+    id: "e-6",
+    name: "Frank Fischer",
+    role: "employee",
+    team: [],
+  },
+  {
+    id: "e-7",
+    name: "Grace Green",
+    role: "employee",
+    team: [],
+  },
+  {
+    id: "e-8",
+    name: "Henry Harris",
     role: "employee",
     team: [],
   },
@@ -173,6 +197,59 @@ export const demoToilSubmissions: ToilSubmission[] = [
     amount: 120,
     status: "Approved",
     notes: "Supporting project B",
+  },
+  
+  // Additional submissions for Emma
+  {
+    id: "sub-10",
+    userId: "e-5",
+    type: "earn",
+    date: "2024-04-15",
+    project: "Database Migration",
+    startTime: "18:00",
+    endTime: "21:00",
+    weekend: false,
+    amount: 180,
+    status: "Approved",
+    notes: "Extended system update",
+  },
+  // Frank's submission
+  {
+    id: "sub-11",
+    userId: "e-6",
+    type: "use",
+    date: "2024-04-12",
+    amount: 240,
+    status: "Pending",
+    notes: "Personal appointment",
+  },
+  // Grace's submissions
+  {
+    id: "sub-12",
+    userId: "e-7",
+    type: "earn",
+    date: "2024-04-08",
+    project: "Emergency Hotfix",
+    startTime: "20:00",
+    endTime: "23:00",
+    weekend: false,
+    amount: 180,
+    status: "Approved",
+    notes: "Production issue resolution",
+  },
+  // Henry's submission
+  {
+    id: "sub-13",
+    userId: "e-8",
+    type: "earn",
+    date: "2024-04-05",
+    project: "Weekend Release",
+    startTime: "09:00",
+    endTime: "13:00",
+    weekend: true,
+    amount: 240,
+    status: "Pending",
+    notes: "Major version deployment",
   },
 ];
 
