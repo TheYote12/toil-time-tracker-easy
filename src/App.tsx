@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,19 +15,57 @@ import { AppSidebar } from "./components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { NotificationSystem } from "./components/NotificationSystem";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import SetupWizard from "./pages/SetupWizard";
 
 const queryClient = new QueryClient();
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isManager } = useAuth();
+  const [setupComplete, setSetupComplete] = useState(false);
+  const [checkingSetup, setCheckingSetup] = useState(true);
   
-  if (isLoading) {
+  useEffect(() => {
+    async function checkSetup() {
+      if (user) {
+        const { data } = await supabase
+          .from('organization_settings')
+          .select('setup_completed')
+          .single();
+        
+        setSetupComplete(!!data?.setup_completed);
+      }
+      setCheckingSetup(false);
+    }
+    
+    checkSetup();
+  }, [user]);
+  
+  if (isLoading || checkingSetup) {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
   }
   
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  // If setup is not complete and user is a manager, redirect to setup
+  if (!setupComplete && isManager) {
+    return <Navigate to="/setup" replace />;
+  }
+
+  // If setup is not complete and user is not a manager, show waiting message
+  if (!setupComplete && !isManager) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Organization Setup Required</h2>
+          <p className="text-gray-600">Please wait for a manager to complete the organization setup.</p>
+        </div>
+      </div>
+    );
   }
   
   return (
@@ -63,6 +100,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/setup" element={<SetupWizard />} />
             <Route
               path="/"
               element={

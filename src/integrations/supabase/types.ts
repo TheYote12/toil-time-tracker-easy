@@ -61,6 +61,8 @@ export type Database = {
           max_toil_hours: number
           name: string
           requires_manager_approval: boolean | null
+          setup_completed: boolean | null
+          setup_step: string | null
           toil_expiry_days: number | null
           updated_at: string | null
         }
@@ -70,6 +72,8 @@ export type Database = {
           max_toil_hours?: number
           name?: string
           requires_manager_approval?: boolean | null
+          setup_completed?: boolean | null
+          setup_step?: string | null
           toil_expiry_days?: number | null
           updated_at?: string | null
         }
@@ -79,6 +83,8 @@ export type Database = {
           max_toil_hours?: number
           name?: string
           requires_manager_approval?: boolean | null
+          setup_completed?: boolean | null
+          setup_step?: string | null
           toil_expiry_days?: number | null
           updated_at?: string | null
         }
