@@ -179,6 +179,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      is_admin_or_manager: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       restore_data: {
         Args: { backup_data: Json }
         Returns: boolean

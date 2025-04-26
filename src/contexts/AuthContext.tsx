@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
 
+type UserRole = "admin" | "manager" | "employee";
+
 type AuthContextType = {
   user: User | null;
   session: Session | null;
@@ -12,6 +14,8 @@ type AuthContextType = {
   signUp: (email: string, password: string, options?: { name?: string; role?: string }) => Promise<void>;
   signOut: () => Promise<void>;
   isManager: boolean;
+  isAdmin: boolean;
+  userRole: UserRole | null;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -22,13 +26,17 @@ const AuthContext = createContext<AuthContextType>({
   signUp: async () => {},
   signOut: async () => {},
   isManager: false,
+  isAdmin: false,
+  userRole: null,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isManager, setIsManager] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -62,10 +70,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error) {
           console.error('Error fetching user role:', error);
         } else if (data) {
-          setIsManager(data.role === 'manager');
+          const role = data.role as UserRole;
+          setUserRole(role);
+          setIsManager(role === 'manager' || role === 'admin');
+          setIsAdmin(role === 'admin');
         }
       } else {
+        setUserRole(null);
         setIsManager(false);
+        setIsAdmin(false);
       }
     }
 
@@ -156,7 +169,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signIn,
         signUp,
         signOut,
-        isManager
+        isManager,
+        isAdmin,
+        userRole
       }}
     >
       {children}

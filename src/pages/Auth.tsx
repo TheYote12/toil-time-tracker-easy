@@ -67,7 +67,7 @@ export default function Auth() {
           {isFirstUser && (
             <Alert className="mb-6">
               <AlertDescription>
-                Welcome! As the first user, you'll be set up as a manager and guided through the organization setup process.
+                Welcome! As the first user, you'll be set up as an admin and guided through the organization setup process.
               </AlertDescription>
             </Alert>
           )}
