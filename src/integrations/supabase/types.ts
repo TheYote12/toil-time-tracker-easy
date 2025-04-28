@@ -201,6 +201,10 @@ export type Database = {
           role: string
         }[]
       }
+      get_toil_balance: {
+        Args: { user_id_param: string }
+        Returns: number
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: string

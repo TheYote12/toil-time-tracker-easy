@@ -43,9 +43,9 @@ export function useDashboardData() {
       }
       
       try {
-        // Get the TOIL balance using RPC
+        // Get the TOIL balance using RPC with explicit type casting
         const { data: balanceData, error: balanceError } = await supabase
-          .rpc('get_toil_balance', { user_id_param: user.id });
+          .rpc('get_toil_balance', { user_id_param: user.id }) as { data: number | null, error: any };
           
         if (balanceError) {
           console.error('Error fetching TOIL balance:', balanceError);

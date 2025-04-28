@@ -22,9 +22,9 @@ export default function SidebarProfile() {
     try {
       console.log('Calculating balance for user:', user.id);
       
-      // Use the RPC function to get already approved submissions
+      // Use the RPC function with explicit type casting
       const { data, error } = await supabase
-        .rpc('get_toil_balance', { user_id_param: user.id });
+        .rpc('get_toil_balance', { user_id_param: user.id }) as { data: number | null, error: any };
 
       if (error) {
         console.error('Error calculating TOIL balance:', error);
