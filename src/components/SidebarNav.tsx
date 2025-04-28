@@ -1,8 +1,7 @@
-
 import { SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { useLocation, Link } from "react-router-dom";
 import { List, Clock, FileText, Users } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 
 const navItems = [
   { title: "Dashboard", icon: List, to: "/dashboard" },
