@@ -30,12 +30,22 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     async function checkSetup() {
       if (user) {
-        const { data } = await supabase
-          .from('organization_settings')
-          .select('setup_completed')
-          .single();
-        
-        setSetupComplete(!!data?.setup_completed);
+        try {
+          const { data, error } = await supabase
+            .from('organization_settings')
+            .select('setup_completed')
+            .maybeSingle();
+          
+          if (error) {
+            console.error("Error checking setup status:", error);
+          }
+          
+          // Consider setup complete if we have an explicit true value
+          // or if we don't have any organization_settings record yet
+          setSetupComplete(!!data?.setup_completed);
+        } catch (error) {
+          console.error("Unexpected error checking setup:", error);
+        }
       }
       setCheckingSetup(false);
     }

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
@@ -11,31 +10,60 @@ type SetupStep = 'organization' | 'departments' | 'complete';
 
 export default function SetupWizard() {
   const [currentStep, setCurrentStep] = useState<SetupStep>('organization');
-  const [progress, setProgress] = useState(0);
+  const [progress, setProgress] = useState(33); // Start with first step
   const navigate = useNavigate();
-  const { user, isManager } = useAuth();
+  const { user, isAdmin, isManager } = useAuth();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is a manager
-    if (!isManager) {
+    // Check if user is authorized for setup
+    if (user && !isManager && !isAdmin) {
       navigate('/dashboard');
+      return;
     }
 
     // Fetch current setup step
     async function fetchSetupStatus() {
-      const { data } = await supabase
-        .from('organization_settings')
-        .select('setup_step')
-        .single();
-      
-      if (data?.setup_step) {
-        setCurrentStep(data.setup_step as SetupStep);
-        updateProgress(data.setup_step as SetupStep);
+      setLoading(true);
+      try {
+        // First check if there's an organization settings record at all
+        const { data: orgData, error: orgError } = await supabase
+          .from('organization_settings')
+          .select('*');
+        
+        // If no organization settings exist yet, create the initial record
+        if (!orgData || orgData.length === 0) {
+          await supabase.from('organization_settings').insert({
+            name: 'Scene3D',
+            setup_step: 'organization',
+            setup_completed: false,
+            max_toil_hours: 35,
+            toil_expiry_days: 90,
+            requires_manager_approval: true
+          });
+          setCurrentStep('organization');
+          setProgress(33);
+        } else if (orgData[0]?.setup_step) {
+          // Otherwise use the existing step
+          const step = orgData[0].setup_step as SetupStep;
+          setCurrentStep(step);
+          updateProgress(step);
+          
+          // If setup is already complete, redirect to dashboard
+          if (step === 'complete' || orgData[0].setup_completed) {
+            navigate('/dashboard');
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching setup status:', error);
+      } finally {
+        setLoading(false);
       }
     }
 
     fetchSetupStatus();
-  }, [isManager, navigate]);
+  }, [isManager, isAdmin, user, navigate]);
 
   const updateProgress = (step: SetupStep) => {
     const steps: Record<SetupStep, number> = {
@@ -66,6 +94,19 @@ export default function SetupWizard() {
       console.error('Error updating setup step:', error);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-2xl space-y-4 text-center">
+          <h2 className="text-xl font-medium">Loading setup wizard...</h2>
+          <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div className="bg-purple-600 h-2.5 rounded-full animate-pulse" style={{width: '100%'}}></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">

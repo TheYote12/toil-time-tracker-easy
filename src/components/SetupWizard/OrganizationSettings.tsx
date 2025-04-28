@@ -13,7 +13,41 @@ export function OrganizationSettings({ onComplete }: { onComplete: () => void })
     toil_expiry_days: 90,
     requires_manager_approval: true
   });
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => {
+    async function fetchSettings() {
+      try {
+        const { data, error } = await supabase
+          .from('organization_settings')
+          .select('max_toil_hours, toil_expiry_days, requires_manager_approval')
+          .eq('name', 'Scene3D')
+          .maybeSingle();
+
+        if (error) throw error;
+        
+        if (data) {
+          setSettings({
+            max_toil_hours: data.max_toil_hours || 35,
+            toil_expiry_days: data.toil_expiry_days || 90,
+            requires_manager_approval: data.requires_manager_approval !== false // default to true
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load organization settings",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchSettings();
+  }, [toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +74,10 @@ export function OrganizationSettings({ onComplete }: { onComplete: () => void })
       });
     }
   };
+
+  if (loading) {
+    return <div className="py-4 text-center">Loading settings...</div>;
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
