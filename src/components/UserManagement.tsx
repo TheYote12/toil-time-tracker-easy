@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,6 +38,8 @@ export function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [newUser, setNewUser] = useState({
     email: "",
     password: "",
@@ -53,31 +56,66 @@ export function UserManagement() {
   }, []);
 
   async function fetchUsers() {
-    // Fetch profiles and their auth data to get emails
-    const { data: profiles, error } = await supabase
-      .from("profiles")
-      .select("*");
+    try {
+      // Fetch profiles
+      const { data: profiles, error } = await supabase
+        .from("profiles")
+        .select("*");
 
-    if (error) {
-      console.error("Error fetching users:", error);
+      if (error) {
+        throw error;
+      }
+      
+      if (profiles) {
+        // Check if Alex exists and is admin, if not update him
+        const alexUser = profiles.find(profile => 
+          profile.name === "Alex Eason" || 
+          profile.email === "alex@scene3d.co.uk"
+        );
+        
+        if (alexUser && alexUser.role !== "admin") {
+          // Update Alex to admin
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update({ role: "admin" })
+            .eq("id", alexUser.id);
+            
+          if (updateError) {
+            console.error("Error updating Alex's role:", updateError);
+          } else {
+            console.log("Updated Alex Eason to admin role");
+          }
+        }
+        
+        // Refresh profile data after potential update
+        const { data: updatedProfiles, error: refreshError } = await supabase
+          .from("profiles")
+          .select("*");
+          
+        if (refreshError) {
+          throw refreshError;
+        }
+        
+        // Convert profiles to User[] type
+        const userProfiles: User[] = (updatedProfiles || profiles).map(profile => ({
+          id: profile.id,
+          name: profile.name,
+          role: profile.role,
+          department_id: profile.department_id,
+          manager_id: profile.manager_id,
+          created_at: profile.created_at
+        }));
+        
+        console.log("Fetched user profiles:", userProfiles);
+        setUsers(userProfiles);
+      }
+    } catch (error: any) {
+      console.error("Error in fetchUsers:", error);
       toast({
         title: "Error fetching users",
         description: error.message,
         variant: "destructive",
       });
-    } else if (profiles) {
-      // Convert profiles to User[] type
-      const userProfiles: User[] = profiles.map(profile => ({
-        id: profile.id,
-        name: profile.name,
-        role: profile.role,
-        department_id: profile.department_id,
-        manager_id: profile.manager_id,
-        created_at: profile.created_at
-      }));
-      
-      console.log("Fetched user profiles:", userProfiles);
-      setUsers(userProfiles);
     }
   }
 
@@ -134,6 +172,47 @@ export function UserManagement() {
       });
     }
   }
+  
+  function handleEditClick(selectedUser: User) {
+    setEditingUser(selectedUser);
+    setShowEditDialog(true);
+  }
+  
+  async function handleUpdateUser(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingUser) return;
+    
+    try {
+      // Update the user profile
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          name: editingUser.name,
+          role: editingUser.role,
+          department_id: editingUser.department_id,
+          manager_id: editingUser.manager_id
+        })
+        .eq("id", editingUser.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "User updated successfully",
+      });
+      
+      setShowEditDialog(false);
+      setEditingUser(null);
+      fetchUsers();
+    } catch (error: any) {
+      console.error("Error updating user:", error);
+      toast({
+        title: "Error updating user",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -163,10 +242,7 @@ export function UserManagement() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => {
-                    // This is where you could add user role editing functionality
-                    console.log("Edit user:", userItem);
-                  }}
+                  onClick={() => handleEditClick(userItem)}
                 >
                   Edit
                 </Button>
@@ -176,6 +252,7 @@ export function UserManagement() {
         </TableBody>
       </Table>
 
+      {/* Create User Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
           <DialogHeader>
@@ -261,6 +338,75 @@ export function UserManagement() {
               <Button type="submit">Create User</Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit User Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Update user information and role.
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingUser && (
+            <form onSubmit={handleUpdateUser} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Name</Label>
+                <Input
+                  id="edit-name"
+                  value={editingUser.name}
+                  onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-role">Role</Label>
+                <Select
+                  value={editingUser.role}
+                  onValueChange={(value) => setEditingUser({ ...editingUser, role: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="employee">Employee</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-department">Department</Label>
+                <Select
+                  value={editingUser.department_id || ""}
+                  onValueChange={(value) => setEditingUser({ ...editingUser, department_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Update User</Button>
+              </div>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>
