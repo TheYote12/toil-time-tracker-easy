@@ -190,6 +190,10 @@ export type Database = {
         }
         Returns: string
       }
+      get_user_role: {
+        Args: { user_id: string }
+        Returns: string
+      }
       is_admin_or_manager: {
         Args: Record<PropertyKey, never>
         Returns: boolean

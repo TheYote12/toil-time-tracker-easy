@@ -20,53 +20,15 @@ export function useUsers() {
     try {
       const { data: profiles, error } = await supabase
         .from("profiles")
-        .select("*");
+        .select("*")
+        .order('name');
 
       if (error) {
         throw error;
       }
       
       if (profiles) {
-        console.log("All profiles:", profiles);
-        
-        // Check if Alex exists and is admin, if not update him
-        const alexUser = profiles.find(profile => 
-          profile.name === "Alex Eason" || 
-          profile.name.toLowerCase().includes("alex")
-        );
-        
-        if (alexUser && alexUser.role !== "admin") {
-          const { error: updateError } = await supabase
-            .from("profiles")
-            .update({ role: "admin" })
-            .eq("id", alexUser.id);
-            
-          if (updateError) {
-            console.error("Error updating Alex's role:", updateError);
-            toast({
-              title: "Error updating Alex's role",
-              description: updateError.message,
-              variant: "destructive",
-            });
-          } else {
-            console.log("Updated Alex Eason to admin role successfully");
-            toast({
-              title: "Admin Role Updated",
-              description: "Updated Alex Eason to admin role",
-            });
-          }
-        }
-        
-        // Refresh profile data after potential update
-        const { data: updatedProfiles, error: refreshError } = await supabase
-          .from("profiles")
-          .select("*");
-          
-        if (refreshError) {
-          throw refreshError;
-        }
-        
-        const userProfiles: User[] = (updatedProfiles || profiles).map(profile => ({
+        const userProfiles: User[] = profiles.map(profile => ({
           id: profile.id,
           name: profile.name,
           role: profile.role,

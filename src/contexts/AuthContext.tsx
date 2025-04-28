@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
       }
@@ -61,19 +61,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function fetchUserRole() {
       if (user) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle();
 
-        if (error) {
-          console.error('Error fetching user role:', error);
-        } else if (data) {
-          const role = data.role as UserRole;
-          setUserRole(role);
-          setIsManager(role === 'manager' || role === 'admin');
-          setIsAdmin(role === 'admin');
+          if (error) {
+            console.error('Error fetching user role:', error);
+          } else if (data) {
+            const role = data.role as UserRole;
+            setUserRole(role);
+            setIsManager(role === 'manager' || role === 'admin');
+            setIsAdmin(role === 'admin');
+          }
+        } catch (error) {
+          console.error('Error in fetchUserRole:', error);
         }
       } else {
         setUserRole(null);
