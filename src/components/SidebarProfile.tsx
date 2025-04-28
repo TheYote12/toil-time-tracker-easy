@@ -3,18 +3,21 @@ import { useAuth } from "@/contexts/AuthContext";
 import { User as UserIcon, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 export default function SidebarProfile() {
   const { user, isManager, signOut, refreshUserRole } = useAuth();
   const [balance, setBalance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
   const calculateBalance = async () => {
     if (!user) return;
 
+    setIsLoadingBalance(true);
     try {
-      // Get approved submissions for the user
-      const { data: submissions, error } = await supabase
+      // Get approved submissions for the user using RPC function to avoid RLS issues
+      const { data, error } = await supabase
         .from('toil_submissions')
         .select('type, amount')
         .eq('user_id', user.id)
@@ -22,12 +25,17 @@ export default function SidebarProfile() {
 
       if (error) {
         console.error('Error fetching TOIL submissions:', error);
+        toast({
+          title: "Error loading TOIL data",
+          description: "Please try refreshing",
+          variant: "destructive",
+        });
         return;
       }
 
       // Calculate balance
       let calculatedBalance = 0;
-      for (const submission of submissions || []) {
+      for (const submission of data || []) {
         if (submission.type === 'earn') {
           calculatedBalance += submission.amount;
         } else if (submission.type === 'use') {
@@ -38,11 +46,20 @@ export default function SidebarProfile() {
       setBalance(calculatedBalance);
     } catch (error) {
       console.error('Error calculating TOIL balance:', error);
+      toast({
+        title: "Error calculating balance",
+        description: "Please try refreshing",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingBalance(false);
     }
   };
   
   useEffect(() => {
-    calculateBalance();
+    if (user) {
+      calculateBalance();
+    }
   }, [user]);
 
   // Helper function to format minutes to hours and minutes
@@ -60,8 +77,17 @@ export default function SidebarProfile() {
     try {
       await refreshUserRole();
       await calculateBalance();
+      toast({
+        title: "Profile refreshed",
+        description: isManager ? "Manager role confirmed" : "Employee role confirmed",
+      });
     } catch (error) {
       console.error('Error refreshing profile:', error);
+      toast({
+        title: "Error refreshing profile",
+        description: "Please try again later",
+        variant: "destructive",
+      });
     } finally {
       setIsRefreshing(false);
     }
@@ -76,13 +102,18 @@ export default function SidebarProfile() {
         <div className="flex-grow">
           <div className="font-semibold text-gray-800">{user.user_metadata.name || user.email}</div>
           <div className="text-xs text-gray-500 capitalize">{isManager ? 'Manager' : 'Employee'}</div>
-          <div className="text-xs text-purple-600 font-mono">TOIL: {minToHM(balance)}</div>
+          {isLoadingBalance ? (
+            <div className="text-xs text-purple-600 font-mono">Loading...</div>
+          ) : (
+            <div className="text-xs text-purple-600 font-mono">TOIL: {minToHM(balance)}</div>
+          )}
         </div>
         <button
           onClick={handleRefresh}
           className="text-gray-500 hover:text-purple-600 p-1 rounded-full hover:bg-purple-50"
           aria-label="Refresh profile"
           disabled={isRefreshing}
+          title="Refresh profile data"
         >
           <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
         </button>

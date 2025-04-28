@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -38,24 +37,30 @@ const Dashboard = () => {
     setIsLoading(true);
 
     try {
-      // First refresh the user role
-      await refreshUserRole();
-      
-      // Fetch user's own TOIL submissions
-      const { data: submissions, error } = await supabase
-        .from('toil_submissions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false });
-
-      if (error) {
-        console.error("Error fetching user submissions:", error);
+      // First refresh the user role with proper error handling
+      try {
+        await refreshUserRole();
+      } catch (error) {
+        console.error("Error refreshing user role:", error);
         toast({
-          title: "Error loading submissions",
-          description: "Please try refreshing the page",
+          title: "Error refreshing role",
+          description: "Some features may be limited",
           variant: "destructive",
         });
-      } else {
+      }
+      
+      // Fetch user's own TOIL submissions with error handling
+      try {
+        const { data: submissions, error } = await supabase
+          .from('toil_submissions')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('date', { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
         // Calculate balance and set recent submissions
         let calculatedBalance = 0;
         for (const sub of submissions || []) {
@@ -67,18 +72,35 @@ const Dashboard = () => {
         
         setBalance(calculatedBalance);
         setRecentSubmissions((submissions || []).slice(0, 6));
+      } catch (error: any) {
+        console.error("Error fetching user submissions:", error);
+        toast({
+          title: "Error loading submissions",
+          description: error.message || "Please try refreshing the page",
+          variant: "destructive",
+        });
       }
 
+      // If user is manager, fetch team members with error handling
       if (isManager) {
-        const { data: members, error: membersError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('manager_id', user.id);
+        try {
+          const { data: members, error: membersError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('manager_id', user.id);
 
-        if (membersError) {
-          console.error("Error fetching team members:", membersError);
-        } else {
+          if (membersError) {
+            throw membersError;
+          }
+          
           setTeamMembers(members || []);
+        } catch (error: any) {
+          console.error("Error fetching team members:", error);
+          toast({
+            title: "Error loading team",
+            description: error.message || "Unable to load team information",
+            variant: "destructive",
+          });
         }
       }
     } catch (error) {

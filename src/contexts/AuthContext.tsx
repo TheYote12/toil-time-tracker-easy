@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
@@ -40,14 +41,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
 
+  // Modified to use RPC function instead of direct query to avoid RLS recursion
   const fetchUserRole = useCallback(async (userId: string) => {
     try {
       console.log('Fetching user role for:', userId);
+      
+      // Use get_user_role RPC function which is SECURITY DEFINER and bypasses RLS
       const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .maybeSingle();
+        .rpc('get_user_role', { user_id: userId });
 
       if (error) {
         console.error('Error fetching user role:', error);
@@ -56,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (data) {
         console.log('Received role data:', data);
-        const role = data.role as UserRole;
+        const role = data as UserRole;
         setUserRole(role);
         setIsManager(role === 'manager' || role === 'admin');
         setIsAdmin(role === 'admin');
