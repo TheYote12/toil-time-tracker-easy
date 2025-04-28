@@ -19,19 +19,22 @@ export function useTeamMembers() {
     setError(null);
     
     try {
-      // Use our existing RPC function to get profiles data safely
+      console.log('Fetching team members for user:', user.id);
       const { data, error } = await supabase
         .rpc('get_all_profiles') as { data: User[] | null; error: Error | null };
 
       if (error) {
+        console.error('Error in get_all_profiles RPC:', error);
         throw error;
       }
       
-      // Filter the profiles to only include those where the manager_id is the current user's ID
       if (data) {
+        console.log('Received profiles:', data);
         const members = data.filter(profile => profile.manager_id === user.id);
+        console.log('Filtered team members:', members);
         setTeamMembers(members);
       } else {
+        console.log('No profiles data received');
         setTeamMembers([]);
       }
     } catch (error: any) {
@@ -39,7 +42,7 @@ export function useTeamMembers() {
       setError(error.message);
       toast({
         title: "Error fetching team members",
-        description: error.message,
+        description: "Please try refreshing the page",
         variant: "destructive",
       });
     } finally {

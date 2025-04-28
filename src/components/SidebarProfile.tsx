@@ -19,7 +19,7 @@ export default function SidebarProfile() {
     setError(null);
     
     try {
-      // Get approved submissions for the user
+      console.log('Calculating balance for user:', user.id);
       const { data, error } = await supabase
         .from('toil_submissions')
         .select('type, amount')
@@ -32,9 +32,15 @@ export default function SidebarProfile() {
         return;
       }
 
+      if (!data) {
+        console.log('No TOIL submissions found');
+        setBalance(0);
+        return;
+      }
+
       // Calculate balance
       let calculatedBalance = 0;
-      for (const submission of data || []) {
+      for (const submission of data) {
         if (submission.type === 'earn') {
           calculatedBalance += submission.amount;
         } else if (submission.type === 'use') {
@@ -42,6 +48,7 @@ export default function SidebarProfile() {
         }
       }
 
+      console.log('Calculated TOIL balance:', calculatedBalance);
       setBalance(calculatedBalance);
       setError(null);
     } catch (error: any) {

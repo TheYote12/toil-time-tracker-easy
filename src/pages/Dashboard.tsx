@@ -42,9 +42,12 @@ const Dashboard = () => {
     setError(null);
 
     try {
+      console.log('Fetching dashboard data for user:', user.id);
+      
       // First refresh the user role with proper error handling
       try {
         await refreshUserRole();
+        console.log('User role refreshed successfully');
       } catch (error: any) {
         console.error("Error refreshing user role:", error);
         toast({
@@ -63,8 +66,11 @@ const Dashboard = () => {
           .order('date', { ascending: false });
 
         if (error) {
+          console.error('Error fetching submissions:', error);
           throw error;
         }
+
+        console.log('Fetched TOIL submissions:', submissions);
 
         // Calculate balance and set recent submissions
         let calculatedBalance = 0;
