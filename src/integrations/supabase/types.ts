@@ -190,6 +190,17 @@ export type Database = {
         }
         Returns: string
       }
+      get_all_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          department_id: string | null
+          id: string
+          manager_id: string | null
+          name: string
+          role: string
+        }[]
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: string

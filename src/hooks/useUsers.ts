@@ -23,26 +23,16 @@ export function useUsers() {
     setError(null);
     
     try {
-      // Use RPC function to get profiles data instead of direct query
-      // This avoids the infinite recursion in RLS policies
+      // Use RPC function to get profiles data with proper typing
       const { data, error } = await supabase
-        .rpc('get_all_profiles');
+        .rpc('get_all_profiles') as { data: User[] | null; error: Error | null };
 
       if (error) {
         throw error;
       }
       
       if (data) {
-        const userProfiles: User[] = data.map((profile: any) => ({
-          id: profile.id,
-          name: profile.name,
-          role: profile.role,
-          department_id: profile.department_id,
-          manager_id: profile.manager_id,
-          created_at: profile.created_at
-        }));
-        
-        setUsers(userProfiles);
+        setUsers(data);
       }
     } catch (error: any) {
       console.error("Error in fetchUsers:", error);
