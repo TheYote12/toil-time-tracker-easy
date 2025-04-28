@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import { format } from "date-fns";
 import { ManagerAnalyticsPanel } from "@/components/ManagerAnalyticsPanel";
 import { TOILPolicyGuide } from "@/components/TOILPolicyGuide";

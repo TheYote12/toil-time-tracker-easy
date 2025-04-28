@@ -1,23 +1,10 @@
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
-type UserRole = "admin" | "manager" | "employee";
-
-type AuthContextType = {
-  user: User | null;
-  session: Session | null;
-  isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, options?: { name?: string; role?: string }) => Promise<void>;
-  signOut: () => Promise<void>;
-  isManager: boolean;
-  isAdmin: boolean;
-  userRole: UserRole | null;
-  refreshUserRole: () => Promise<void>;
-};
+import { AuthContextType } from "./types";
+import { useUserRole } from "./useUserRole";
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -36,53 +23,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [isManager, setIsManager] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
+  const {
+    userRole,
+    isManager,
+    isAdmin,
+    fetchUserRole,
+    setUserRole,
+    setIsManager,
+    setIsAdmin,
+  } = useUserRole();
 
-  // Modified to use RPC function instead of direct query to avoid RLS recursion
-  const fetchUserRole = useCallback(async (userId: string) => {
-    try {
-      console.log('Fetching user role for:', userId);
-      
-      // Use get_user_role RPC function which is SECURITY DEFINER and bypasses RLS
-      const { data, error } = await supabase
-        .rpc('get_user_role', { user_id: userId });
-
-      if (error) {
-        console.error('Error fetching user role:', error);
-        throw error;
-      }
-
-      if (data) {
-        console.log('Received role data:', data);
-        const role = data as UserRole;
-        setUserRole(role);
-        setIsManager(role === 'manager' || role === 'admin');
-        setIsAdmin(role === 'admin');
-      } else {
-        console.log('No role data found');
-        setUserRole(null);
-        setIsManager(false);
-        setIsAdmin(false);
-      }
-    } catch (error) {
-      console.error('Error in fetchUserRole:', error);
-      toast({
-        title: "Error fetching user role",
-        description: "Please try refreshing the page",
-        variant: "destructive",
-      });
-    }
-  }, [toast]);
-
-  const refreshUserRole = useCallback(async () => {
+  const refreshUserRole = async () => {
     if (user) {
       console.log('Refreshing user role...');
       await fetchUserRole(user.id);
     }
-  }, [user, fetchUserRole]);
+  };
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -118,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchUserRole]);
+  }, [fetchUserRole, setUserRole, setIsManager, setIsAdmin]);
 
   async function signIn(email: string, password: string) {
     try {
