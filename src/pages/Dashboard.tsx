@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
@@ -13,6 +14,7 @@ import { NoTeamMembers } from "@/components/dashboard/NoTeamMembers";
 import { Button } from "@/components/ui/button";
 import { ReloadIcon } from "@/components/dashboard/ReloadIcon";
 import { toast } from "@/hooks/use-toast";
+import { useTeamMembers } from "@/hooks/useTeamMembers";
 
 type ToilSubmission = {
   id: string;
@@ -28,19 +30,21 @@ const Dashboard = () => {
   const { user, isManager, refreshUserRole } = useAuth();
   const [balance, setBalance] = useState(0);
   const [recentSubmissions, setRecentSubmissions] = useState<ToilSubmission[]>([]);
-  const [teamMembers, setTeamMembers] = useState<{ id: string; name: string; }[]>([]);
+  const { teamMembers, isLoading: isLoadingTeam, error: teamError } = useTeamMembers();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchDashboardData = async () => {
     if (!user) return;
     setIsLoading(true);
+    setError(null);
 
     try {
       // First refresh the user role with proper error handling
       try {
         await refreshUserRole();
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error refreshing user role:", error);
         toast({
           title: "Error refreshing role",
@@ -74,37 +78,16 @@ const Dashboard = () => {
         setRecentSubmissions((submissions || []).slice(0, 6));
       } catch (error: any) {
         console.error("Error fetching user submissions:", error);
+        setError(error.message);
         toast({
           title: "Error loading submissions",
           description: error.message || "Please try refreshing the page",
           variant: "destructive",
         });
       }
-
-      // If user is manager, fetch team members with error handling
-      if (isManager) {
-        try {
-          const { data: members, error: membersError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('manager_id', user.id);
-
-          if (membersError) {
-            throw membersError;
-          }
-          
-          setTeamMembers(members || []);
-        } catch (error: any) {
-          console.error("Error fetching team members:", error);
-          toast({
-            title: "Error loading team",
-            description: error.message || "Unable to load team information",
-            variant: "destructive",
-          });
-        }
-      }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Unexpected error:", error);
+      setError(error.message);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -145,6 +128,21 @@ const Dashboard = () => {
       <NotificationSystem />
       <TOILPolicyGuide />
       
+      {error && (
+        <div className="bg-red-100 border border-red-300 text-red-700 p-4 rounded mb-4">
+          <h3 className="font-semibold">Error loading data</h3>
+          <p className="text-sm">{error}</p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh} 
+            className="mt-2"
+          >
+            Try Again
+          </Button>
+        </div>
+      )}
+      
       <div className="mb-8">
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-2xl font-bold">Welcome{user?.user_metadata.name ? `, ${user.user_metadata.name}` : ''}</h2>
@@ -182,7 +180,9 @@ const Dashboard = () => {
         </div>
       )}
 
-      {isManager && teamMembers.length === 0 && <NoTeamMembers />}
+      {isManager && teamMembers.length === 0 && !isLoadingTeam && (
+        <NoTeamMembers />
+      )}
     </div>
   );
 };

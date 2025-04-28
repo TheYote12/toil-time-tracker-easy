@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/auth";
 import { User as UserIcon, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -9,13 +10,16 @@ export default function SidebarProfile() {
   const [balance, setBalance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const calculateBalance = async () => {
     if (!user) return;
 
     setIsLoadingBalance(true);
+    setError(null);
+    
     try {
-      // Get approved submissions for the user using RPC function to avoid RLS issues
+      // Get approved submissions for the user
       const { data, error } = await supabase
         .from('toil_submissions')
         .select('type, amount')
@@ -24,6 +28,7 @@ export default function SidebarProfile() {
 
       if (error) {
         console.error('Error fetching TOIL submissions:', error);
+        setError(error.message);
         toast({
           title: "Error loading TOIL data",
           description: "Please try refreshing",
@@ -43,8 +48,10 @@ export default function SidebarProfile() {
       }
 
       setBalance(calculatedBalance);
-    } catch (error) {
+      setError(null);
+    } catch (error: any) {
       console.error('Error calculating TOIL balance:', error);
+      setError(error.message);
       toast({
         title: "Error calculating balance",
         description: "Please try refreshing",
@@ -80,8 +87,9 @@ export default function SidebarProfile() {
         title: "Profile refreshed",
         description: isManager ? "Manager role confirmed" : "Employee role confirmed",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error refreshing profile:', error);
+      setError(error.message);
       toast({
         title: "Error refreshing profile",
         description: "Please try again later",
@@ -101,7 +109,9 @@ export default function SidebarProfile() {
         <div className="flex-grow">
           <div className="font-semibold text-gray-800">{user.user_metadata.name || user.email}</div>
           <div className="text-xs text-gray-500 capitalize">{isManager ? 'Manager' : 'Employee'}</div>
-          {isLoadingBalance ? (
+          {error ? (
+            <div className="text-xs text-red-500">Error loading TOIL</div>
+          ) : isLoadingBalance ? (
             <div className="text-xs text-purple-600 font-mono">Loading...</div>
           ) : (
             <div className="text-xs text-purple-600 font-mono">TOIL: {minToHM(balance)}</div>

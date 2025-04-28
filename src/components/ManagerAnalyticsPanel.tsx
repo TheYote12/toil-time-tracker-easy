@@ -1,10 +1,11 @@
 
-import { useEffect, useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { Users } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 import { minToHM } from "@/pages/RequestTOIL";
+import { useTeamMembers } from "@/hooks/useTeamMembers";
 import {
   Card,
   CardContent,
@@ -15,48 +16,42 @@ import {
 
 export function ManagerAnalyticsPanel() {
   const { user } = useAuth();
-  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const { teamMembers, isLoading: isLoadingMembers, error: membersError } = useTeamMembers();
   const [teamSubmissions, setTeamSubmissions] = useState<any[]>([]);
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
+  const [submissionsError, setSubmissionsError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchTeamData() {
-      if (!user) return;
+    async function fetchTeamSubmissions() {
+      if (!user || !teamMembers.length) return;
 
       try {
-        // Fetch team members
-        const { data: members, error: membersError } = await supabase
-          .from('profiles')
+        setIsLoadingSubmissions(true);
+        const teamIds = teamMembers.map(m => m.id);
+
+        // Fetch team submissions
+        const { data: teamSubs, error: teamSubsError } = await supabase
+          .from('toil_submissions')
           .select('*')
-          .eq('manager_id', user.id);
+          .in('user_id', teamIds);
 
-        if (membersError) {
-          console.error("Error fetching team members:", membersError);
+        if (teamSubsError) {
+          console.error("Error fetching team submissions:", teamSubsError);
+          setSubmissionsError(teamSubsError.message);
         } else {
-          setTeamMembers(members || []);
-
-          if (members?.length) {
-            const teamIds = members.map(m => m.id);
-
-            // Fetch team submissions
-            const { data: teamSubs, error: teamSubsError } = await supabase
-              .from('toil_submissions')
-              .select('*')
-              .in('user_id', teamIds);
-
-            if (teamSubsError) {
-              console.error("Error fetching team submissions:", teamSubsError);
-            } else {
-              setTeamSubmissions(teamSubs || []);
-            }
-          }
+          setTeamSubmissions(teamSubs || []);
+          setSubmissionsError(null);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Unexpected error:", error);
+        setSubmissionsError(error.message);
+      } finally {
+        setIsLoadingSubmissions(false);
       }
     }
 
-    fetchTeamData();
-  }, [user]);
+    fetchTeamSubmissions();
+  }, [user, teamMembers]);
 
   // Requests by status for pie chart
   const statusPieData = useMemo(() => {
@@ -82,6 +77,27 @@ export function ManagerAnalyticsPanel() {
   }, [teamMembers, teamSubmissions]);
 
   const pieColors = ["#a5b4fc", "#f472b6", "#34d399", "#facc15", "#f87171", "#818cf8", "#c084fc"];
+  
+  const isLoading = isLoadingMembers || isLoadingSubmissions;
+  const error = membersError || submissionsError;
+
+  if (error) {
+    return (
+      <div className="bg-red-100 border border-red-300 text-red-700 p-4 rounded mb-4">
+        <h3 className="font-medium">Error loading analytics</h3>
+        <p className="text-sm">{error}</p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="bg-gray-100 border border-gray-200 p-4 rounded mb-4 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-2"></div>
+        <p className="text-gray-600 text-sm">Loading analytics data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
