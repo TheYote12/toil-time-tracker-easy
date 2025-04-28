@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,65 +18,19 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { NotificationSystem } from "./components/NotificationSystem";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import SetupWizard from "./pages/SetupWizard";
 
 const queryClient = new QueryClient();
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, isManager } = useAuth();
-  const [setupComplete, setSetupComplete] = useState(false);
-  const [checkingSetup, setCheckingSetup] = useState(true);
+  const { user, isLoading } = useAuth();
   
-  useEffect(() => {
-    async function checkSetup() {
-      if (user) {
-        try {
-          const { data, error } = await supabase
-            .from('organization_settings')
-            .select('setup_completed')
-            .maybeSingle();
-          
-          if (error) {
-            console.error("Error checking setup status:", error);
-          }
-          
-          // Consider setup complete if we have an explicit true value
-          // or if we don't have any organization_settings record yet
-          setSetupComplete(!!data?.setup_completed);
-        } catch (error) {
-          console.error("Unexpected error checking setup:", error);
-        }
-      }
-      setCheckingSetup(false);
-    }
-    
-    checkSetup();
-  }, [user]);
-  
-  if (isLoading || checkingSetup) {
+  if (isLoading) {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
   }
   
   if (!user) {
     return <Navigate to="/auth" replace />;
-  }
-
-  // If setup is not complete and user is a manager, redirect to setup
-  if (!setupComplete && isManager) {
-    return <Navigate to="/setup" replace />;
-  }
-
-  // If setup is not complete and user is not a manager, show waiting message
-  if (!setupComplete && !isManager) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Organization Setup Required</h2>
-          <p className="text-gray-600">Please wait for a manager to complete the organization setup.</p>
-        </div>
-      </div>
-    );
   }
   
   return (
@@ -101,70 +56,130 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => (
   </ProtectedRoute>
 );
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/setup" element={<SetupWizard />} />
-            <Route
-              path="/"
-              element={
-                <AppLayout>
-                  <Index />
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <AppLayout>
-                  <Dashboard />
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/log-extra-hours"
-              element={
-                <AppLayout>
-                  <LogExtraHours />
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/request-toil"
-              element={
-                <AppLayout>
-                  <RequestTOIL />
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/approvals"
-              element={
-                <AppLayout>
-                  <Approvals />
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/toil-history"
-              element={
-                <AppLayout>
-                  <ToilHistory />
-                </AppLayout>
-              }
-            />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  // Initialize organization settings when the app first loads
+  useEffect(() => {
+    async function initializeOrganizationSettings() {
+      try {
+        // Check if we already have organization settings
+        const { data, error } = await supabase
+          .from('organization_settings')
+          .select('id')
+          .eq('name', 'Scene3D')
+          .maybeSingle();
+        
+        if (error) {
+          throw error;
+        }
+        
+        // If no settings exist yet, create default ones
+        if (!data) {
+          console.log('Creating default organization settings');
+          const { error: insertError } = await supabase
+            .from('organization_settings')
+            .insert({
+              name: 'Scene3D',
+              setup_completed: true,
+              max_toil_hours: 35,
+              toil_expiry_days: 90,
+              requires_manager_approval: true
+            });
+            
+          if (insertError) {
+            throw insertError;
+          }
+          
+          // Create a default department if none exists
+          const { count, error: countError } = await supabase
+            .from('departments')
+            .select('*', { count: 'exact', head: true });
+            
+          if (countError) {
+            throw countError;
+          }
+          
+          if (count === 0) {
+            const { error: deptError } = await supabase
+              .from('departments')
+              .insert({ name: 'General' });
+              
+            if (deptError) {
+              throw deptError;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing settings:', error);
+      }
+    }
+    
+    initializeOrganizationSettings();
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route
+                path="/"
+                element={
+                  <AppLayout>
+                    <Index />
+                  </AppLayout>
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <AppLayout>
+                    <Dashboard />
+                  </AppLayout>
+                }
+              />
+              <Route
+                path="/log-extra-hours"
+                element={
+                  <AppLayout>
+                    <LogExtraHours />
+                  </AppLayout>
+                }
+              />
+              <Route
+                path="/request-toil"
+                element={
+                  <AppLayout>
+                    <RequestTOIL />
+                  </AppLayout>
+                }
+              />
+              <Route
+                path="/approvals"
+                element={
+                  <AppLayout>
+                    <Approvals />
+                  </AppLayout>
+                }
+              />
+              <Route
+                path="/toil-history"
+                element={
+                  <AppLayout>
+                    <ToilHistory />
+                  </AppLayout>
+                }
+              />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
