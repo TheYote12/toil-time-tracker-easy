@@ -57,8 +57,8 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => (
   </ProtectedRoute>
 );
 
-const App = () => {
-  // Initialize organization settings when the app first loads
+// Wrap the initialization of organization settings in a component
+const OrganizationInitializer = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     async function initializeOrganizationSettings() {
       try {
@@ -117,76 +117,82 @@ const App = () => {
     initializeOrganizationSettings();
   }, []);
 
+  return <>{children}</>;
+};
+
+const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <AuthProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route
-                path="/"
-                element={
-                  <AppLayout>
-                    <Index />
-                  </AppLayout>
-                }
-              />
-              <Route
-                path="/dashboard"
-                element={
-                  <AppLayout>
-                    <Dashboard />
-                  </AppLayout>
-                }
-              />
-              <Route
-                path="/log-extra-hours"
-                element={
-                  <AppLayout>
-                    <LogExtraHours />
-                  </AppLayout>
-                }
-              />
-              <Route
-                path="/request-toil"
-                element={
-                  <AppLayout>
-                    <RequestTOIL />
-                  </AppLayout>
-                }
-              />
-              <Route
-                path="/approvals"
-                element={
-                  <AppLayout>
-                    <Approvals />
-                  </AppLayout>
-                }
-              />
-              <Route
-                path="/toil-history"
-                element={
-                  <AppLayout>
-                    <ToilHistory />
-                  </AppLayout>
-                }
-              />
-              <Route
-                path="/departments"
-                element={
-                  <AppLayout>
-                    <Departments />
-                  </AppLayout>
-                }
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </AuthProvider>
-      </TooltipProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <OrganizationInitializer>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route
+                  path="/"
+                  element={
+                    <AppLayout>
+                      <Index />
+                    </AppLayout>
+                  }
+                />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <AppLayout>
+                      <Dashboard />
+                    </AppLayout>
+                  }
+                />
+                <Route
+                  path="/log-extra-hours"
+                  element={
+                    <AppLayout>
+                      <LogExtraHours />
+                    </AppLayout>
+                  }
+                />
+                <Route
+                  path="/request-toil"
+                  element={
+                    <AppLayout>
+                      <RequestTOIL />
+                    </AppLayout>
+                  }
+                />
+                <Route
+                  path="/approvals"
+                  element={
+                    <AppLayout>
+                      <Approvals />
+                    </AppLayout>
+                  }
+                />
+                <Route
+                  path="/toil-history"
+                  element={
+                    <AppLayout>
+                      <ToilHistory />
+                    </AppLayout>
+                  }
+                />
+                <Route
+                  path="/departments"
+                  element={
+                    <AppLayout>
+                      <Departments />
+                    </AppLayout>
+                  }
+                />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </OrganizationInitializer>
+          </TooltipProvider>
+        </BrowserRouter>
+      </AuthProvider>
     </QueryClientProvider>
   );
 };
