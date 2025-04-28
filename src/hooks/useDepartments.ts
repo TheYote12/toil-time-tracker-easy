@@ -10,31 +10,42 @@ export interface Department {
 
 export function useDepartments() {
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   async function fetchDepartments() {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      const { data: departments, error } = await supabase
+      const { data, error } = await supabase
         .from("departments")
-        .select("*");
+        .select("*")
+        .order('name');
 
       if (error) {
-        console.error("Error fetching departments:", error);
-        toast({
-          title: "Error fetching departments",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        setDepartments(departments || []);
+        throw error;
+      }
+
+      if (data) {
+        const deptList: Department[] = data.map(dept => ({
+          id: dept.id,
+          name: dept.name
+        }));
+        
+        setDepartments(deptList);
       }
     } catch (error: any) {
       console.error("Error in fetchDepartments:", error);
+      setError(error.message);
       toast({
         title: "Error fetching departments",
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -42,5 +53,5 @@ export function useDepartments() {
     fetchDepartments();
   }, []);
 
-  return { departments, fetchDepartments };
+  return { departments, fetchDepartments, isLoading, error };
 }

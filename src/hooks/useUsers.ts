@@ -14,21 +14,26 @@ export interface User {
 
 export function useUsers() {
   const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   async function fetchUsers() {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      const { data: profiles, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .order('name');
+      // Use RPC function to get profiles data instead of direct query
+      // This avoids the infinite recursion in RLS policies
+      const { data, error } = await supabase
+        .rpc('get_all_profiles');
 
       if (error) {
         throw error;
       }
       
-      if (profiles) {
-        const userProfiles: User[] = profiles.map(profile => ({
+      if (data) {
+        const userProfiles: User[] = data.map((profile: any) => ({
           id: profile.id,
           name: profile.name,
           role: profile.role,
@@ -41,11 +46,14 @@ export function useUsers() {
       }
     } catch (error: any) {
       console.error("Error in fetchUsers:", error);
+      setError(error.message);
       toast({
         title: "Error fetching users",
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -53,5 +61,5 @@ export function useUsers() {
     fetchUsers();
   }, []);
 
-  return { users, fetchUsers };
+  return { users, fetchUsers, isLoading, error };
 }

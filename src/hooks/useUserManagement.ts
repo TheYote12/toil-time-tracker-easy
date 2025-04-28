@@ -17,8 +17,8 @@ interface NewUser {
 
 export function useUserManagement() {
   const { user } = useAuth();
-  const { users, fetchUsers } = useUsers();
-  const { departments } = useDepartments();
+  const { users, fetchUsers, isLoading: isLoadingUsers, error: usersError } = useUsers();
+  const { departments, isLoading: isLoadingDepartments, error: departmentsError } = useDepartments();
   const { toast } = useToast();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -31,6 +31,16 @@ export function useUserManagement() {
     department_id: "",
     manager_id: user?.id || "",
   });
+
+  // Combine loading states
+  const isLoading = isLoadingUsers || isLoadingDepartments;
+  
+  // Combine error states
+  const error = usersError || departmentsError;
+
+  const refreshData = async () => {
+    await fetchUsers();
+  };
 
   async function handleCreateUser(e: React.FormEvent) {
     e.preventDefault();
@@ -131,5 +141,8 @@ export function useUserManagement() {
     handleCreateUser,
     handleEditClick,
     handleUpdateUser,
+    isLoading,
+    error,
+    refreshData,
   };
 }
