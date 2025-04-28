@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export function DepartmentSetup({ onComplete }: { onComplete: () => void }) {
   const [departments, setDepartments] = useState<string[]>(['']);
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
   const addDepartment = () => {
@@ -37,6 +38,8 @@ export function DepartmentSetup({ onComplete }: { onComplete: () => void }) {
       return;
     }
 
+    setSaving(true);
+    
     try {
       const { error } = await supabase.from('departments')
         .insert(validDepartments.map(name => ({ name })));
@@ -48,7 +51,10 @@ export function DepartmentSetup({ onComplete }: { onComplete: () => void }) {
         description: "Departments have been created successfully"
       });
       
-      onComplete();
+      // Wait briefly to ensure the database has updated before proceeding
+      setTimeout(() => {
+        onComplete();
+      }, 500);
     } catch (error) {
       console.error('Error creating departments:', error);
       toast({
@@ -56,6 +62,8 @@ export function DepartmentSetup({ onComplete }: { onComplete: () => void }) {
         description: "Failed to create departments",
         variant: "destructive"
       });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -89,7 +97,9 @@ export function DepartmentSetup({ onComplete }: { onComplete: () => void }) {
           <Plus className="h-4 w-4 mr-2" />
           Add Department
         </Button>
-        <Button type="submit">Save Departments</Button>
+        <Button type="submit" disabled={saving}>
+          {saving ? "Saving..." : "Save Departments"}
+        </Button>
       </div>
     </form>
   );

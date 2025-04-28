@@ -6,6 +6,7 @@ import { OrganizationSettings } from "@/components/SetupWizard/OrganizationSetti
 import { DepartmentSetup } from "@/components/SetupWizard/DepartmentSetup";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button"; // Added missing import
 
 type SetupStep = 'organization' | 'departments' | 'complete';
 
@@ -17,6 +18,7 @@ export default function SetupWizard() {
   const navigate = useNavigate();
   const { user, isAdmin, isManager } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [initialSetupDone, setInitialSetupDone] = useState(false);
 
   useEffect(() => {
     // Check if user is authorized for setup
@@ -29,42 +31,49 @@ export default function SetupWizard() {
     async function fetchSetupStatus() {
       setLoading(true);
       try {
+        console.log("Fetching setup status...");
         // First check if there's an organization settings record at all
         const { data: orgData, error: orgError } = await supabase
           .from('organization_settings')
-          .select('setup_step, setup_completed');
+          .select('setup_step, setup_completed')
+          .eq('name', 'Scene3D')
+          .maybeSingle();
         
         if (orgError) {
           throw orgError;
         }
         
         // If no organization settings exist yet, create the initial record
-        if (!orgData || orgData.length === 0) {
+        if (!orgData) {
           console.log("No organization settings found, creating initial record");
-          const { error: insertError } = await supabase.from('organization_settings').insert({
-            name: 'Scene3D',
-            setup_step: 'organization',
-            setup_completed: false,
-            max_toil_hours: 35,
-            toil_expiry_days: 90,
-            requires_manager_approval: true
-          });
+          const { error: insertError } = await supabase
+            .from('organization_settings')
+            .insert({
+              name: 'Scene3D',
+              setup_step: 'organization',
+              setup_completed: false,
+              max_toil_hours: 35,
+              toil_expiry_days: 90,
+              requires_manager_approval: true
+            });
           
           if (insertError) throw insertError;
           
           setCurrentStep('organization');
           setProgress(33);
-        } else if (orgData[0]?.setup_completed === true) {
+          setInitialSetupDone(true);
+        } else if (orgData.setup_completed === true) {
           // If setup is already complete, redirect to dashboard
           console.log("Setup is already complete, redirecting to dashboard");
           navigate('/dashboard');
           return;
-        } else if (orgData[0]?.setup_step) {
+        } else if (orgData.setup_step) {
           // Otherwise use the existing step
-          console.log("Found setup step:", orgData[0].setup_step);
-          const step = orgData[0].setup_step as SetupStep;
+          console.log("Found setup step:", orgData.setup_step);
+          const step = orgData.setup_step as SetupStep;
           setCurrentStep(step);
           updateProgress(step);
+          setInitialSetupDone(true);
         }
       } catch (error) {
         console.error('Error fetching setup status:', error);
@@ -90,12 +99,15 @@ export default function SetupWizard() {
   const handleStepComplete = async (nextStep: SetupStep) => {
     try {
       console.log("Updating setup step to:", nextStep);
+      
+      // For the final step, we'll update both setup_step and setup_completed
+      const updateData = nextStep === 'complete' 
+        ? { setup_step: nextStep, setup_completed: true }
+        : { setup_step: nextStep };
+        
       const { error } = await supabase
         .from('organization_settings')
-        .update({ 
-          setup_step: nextStep,
-          ...(nextStep === 'complete' ? { setup_completed: true } : {})
-        })
+        .update(updateData)
         .eq('name', 'Scene3D');
 
       if (error) throw error;
@@ -104,7 +116,10 @@ export default function SetupWizard() {
       updateProgress(nextStep);
 
       if (nextStep === 'complete') {
-        navigate('/dashboard');
+        // Give the database a moment to update before redirecting
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 500);
       }
     } catch (error) {
       console.error('Error updating setup step:', error);
@@ -135,6 +150,19 @@ export default function SetupWizard() {
           </Alert>
           <div className="flex justify-center">
             <Button onClick={() => window.location.reload()}>Refresh Page</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!initialSetupDone) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-2xl space-y-4 text-center">
+          <h2 className="text-xl font-medium">Initializing setup...</h2>
+          <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div className="bg-purple-600 h-2.5 rounded-full animate-pulse" style={{width: '100%'}}></div>
           </div>
         </div>
       </div>

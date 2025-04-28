@@ -16,24 +16,28 @@ export function OrganizationSettings({ onComplete }: { onComplete: () => void })
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const [recordExists, setRecordExists] = useState(false);
 
   useEffect(() => {
     async function fetchSettings() {
       try {
         const { data, error } = await supabase
           .from('organization_settings')
-          .select('max_toil_hours, toil_expiry_days, requires_manager_approval')
+          .select('id, max_toil_hours, toil_expiry_days, requires_manager_approval')
           .eq('name', 'Scene3D')
           .maybeSingle();
 
         if (error) throw error;
         
         if (data) {
+          setRecordExists(true);
           setSettings({
             max_toil_hours: data.max_toil_hours || 35,
             toil_expiry_days: data.toil_expiry_days || 90,
             requires_manager_approval: data.requires_manager_approval !== false // default to true
           });
+        } else {
+          setRecordExists(false);
         }
       } catch (error) {
         console.error('Error fetching settings:', error);
@@ -54,15 +58,30 @@ export function OrganizationSettings({ onComplete }: { onComplete: () => void })
     e.preventDefault();
     setSaving(true);
     try {
-      // Explicitly set the setup_step to 'departments'
-      const { error } = await supabase
-        .from('organization_settings')
-        .update({
-          ...settings,
-          setup_step: 'departments'
-        })
-        .eq('name', 'Scene3D');
-
+      let operation;
+      
+      if (recordExists) {
+        // Update existing record
+        operation = supabase
+          .from('organization_settings')
+          .update({
+            ...settings,
+            // We don't update setup_step here as it's handled by the parent component
+          })
+          .eq('name', 'Scene3D');
+      } else {
+        // Insert new record
+        operation = supabase
+          .from('organization_settings')
+          .insert({
+            name: 'Scene3D',
+            ...settings,
+            setup_step: 'departments'
+          });
+      }
+      
+      const { error } = await operation;
+      
       if (error) throw error;
       
       toast({
