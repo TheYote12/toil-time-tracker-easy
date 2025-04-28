@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +7,7 @@ import { OrganizationSettings } from "@/components/SetupWizard/OrganizationSetti
 import { DepartmentSetup } from "@/components/SetupWizard/DepartmentSetup";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button"; // Added missing import
+import { Button } from "@/components/ui/button";
 
 type SetupStep = 'organization' | 'departments' | 'complete';
 
@@ -19,6 +20,7 @@ export default function SetupWizard() {
   const { user, isAdmin, isManager } = useAuth();
   const [loading, setLoading] = useState(true);
   const [initialSetupDone, setInitialSetupDone] = useState(false);
+  const [skipping, setSkipping] = useState(false);
 
   useEffect(() => {
     // Check if user is authorized for setup
@@ -128,6 +130,47 @@ export default function SetupWizard() {
     }
   };
 
+  const skipSetup = async () => {
+    setSkipping(true);
+    try {
+      console.log("Skipping setup wizard...");
+      
+      // Mark setup as completed
+      const { error } = await supabase
+        .from('organization_settings')
+        .update({
+          setup_step: 'complete',
+          setup_completed: true
+        })
+        .eq('name', 'Scene3D');
+
+      if (error) throw error;
+      
+      // Create a default department if none exists
+      const { data: deptCount, error: countError } = await supabase
+        .from('departments')
+        .select('id', { count: 'exact', head: true });
+        
+      if (countError) throw countError;
+      
+      if (deptCount === null || deptCount === 0) {
+        const { error: deptError } = await supabase
+          .from('departments')
+          .insert({ name: 'General' });
+          
+        if (deptError) throw deptError;
+      }
+      
+      // Navigate to dashboard
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error skipping setup:', error);
+      setIsError(true);
+      setErrorMessage('Failed to skip setup. Please try again.');
+      setSkipping(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
@@ -148,8 +191,11 @@ export default function SetupWizard() {
           <Alert variant="destructive">
             <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
-          <div className="flex justify-center">
+          <div className="flex justify-center space-x-4">
             <Button onClick={() => window.location.reload()}>Refresh Page</Button>
+            <Button variant="outline" onClick={skipSetup} disabled={skipping}>
+              {skipping ? "Skipping..." : "Skip Setup"}
+            </Button>
           </div>
         </div>
       </div>
@@ -187,6 +233,17 @@ export default function SetupWizard() {
           {currentStep === 'departments' && (
             <DepartmentSetup onComplete={() => handleStepComplete('complete')} />
           )}
+        </div>
+
+        <div className="flex justify-center">
+          <Button 
+            variant="outline" 
+            onClick={skipSetup} 
+            disabled={skipping}
+            className="text-gray-600"
+          >
+            {skipping ? "Skipping..." : "Skip Setup Wizard"}
+          </Button>
         </div>
       </div>
     </div>

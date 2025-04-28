@@ -41,6 +41,7 @@ export function DepartmentSetup({ onComplete }: { onComplete: () => void }) {
     setSaving(true);
     
     try {
+      console.log("Saving departments:", validDepartments);
       const { error } = await supabase.from('departments')
         .insert(validDepartments.map(name => ({ name })));
 
@@ -54,7 +55,7 @@ export function DepartmentSetup({ onComplete }: { onComplete: () => void }) {
       // Wait briefly to ensure the database has updated before proceeding
       setTimeout(() => {
         onComplete();
-      }, 500);
+      }, 1000); // Increased timeout for better database sync
     } catch (error) {
       console.error('Error creating departments:', error);
       toast({
