@@ -209,8 +209,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      remove_department_from_profiles: {
+        Args: { department_id_param: string }
+        Returns: boolean
+      }
       restore_data: {
         Args: { backup_data: Json }
+        Returns: boolean
+      }
+      update_user_department: {
+        Args: { user_id_param: string; department_id_param: string }
         Returns: boolean
       }
     }

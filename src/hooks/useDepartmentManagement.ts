@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -117,9 +116,9 @@ export function useDepartmentManagement() {
     if (!editingDepartment) return;
     
     try {
-      // Instead of directly updating profiles, use our RPC function to avoid RLS recursion
-      const { error: rpcError } = await supabase.rpc(
-        'remove_department_from_profiles', 
+      // First, remove department from profiles using our custom function
+      const { error: rpcError, data } = await supabase.rpc(
+        'remove_department_from_profiles',
         { department_id_param: editingDepartment.id }
       );
       
@@ -153,16 +152,26 @@ export function useDepartmentManagement() {
 
   async function handleAssignUserToDepartment(userId: string, departmentId: string | null) {
     try {
-      // Use the safe function to update user department
-      const { error } = await supabase.rpc(
-        'update_user_department', 
-        { 
-          user_id_param: userId, 
-          department_id_param: departmentId 
-        }
-      );
+      if (!departmentId) {
+        // If departmentId is null, just set it to null in the profiles table
+        const { error } = await supabase
+          .from("profiles")
+          .update({ department_id: null })
+          .eq("id", userId);
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        // Use the safe function to update user department
+        const { error: rpcError, data } = await supabase.rpc(
+          'update_user_department',
+          { 
+            user_id_param: userId, 
+            department_id_param: departmentId 
+          }
+        );
+
+        if (rpcError) throw rpcError;
+      }
 
       toast({
         title: "Success",
