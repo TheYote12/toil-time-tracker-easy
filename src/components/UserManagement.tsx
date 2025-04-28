@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,10 +25,11 @@ import {
 interface User {
   id: string;
   name: string;
-  email: string;
   role: string;
+  email?: string; // Made optional since it may not be in the profiles table directly
   department_id: string | null;
   manager_id: string | null;
+  created_at?: string; // Added to match the profile data structure
 }
 
 export function UserManagement() {
@@ -53,7 +53,8 @@ export function UserManagement() {
   }, []);
 
   async function fetchUsers() {
-    const { data: users, error } = await supabase
+    // Fetch profiles and their auth data to get emails
+    const { data: profiles, error } = await supabase
       .from("profiles")
       .select("*");
 
@@ -64,8 +65,19 @@ export function UserManagement() {
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      setUsers(users);
+    } else if (profiles) {
+      // Convert profiles to User[] type
+      const userProfiles: User[] = profiles.map(profile => ({
+        id: profile.id,
+        name: profile.name,
+        role: profile.role,
+        department_id: profile.department_id,
+        manager_id: profile.manager_id,
+        created_at: profile.created_at
+      }));
+      
+      console.log("Fetched user profiles:", userProfiles);
+      setUsers(userProfiles);
     }
   }
 
@@ -134,19 +146,30 @@ export function UserManagement() {
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
             <TableHead>Role</TableHead>
             <TableHead>Department</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {users.map((user) => (
-            <TableRow key={user.id}>
-              <TableCell>{user.name}</TableCell>
-              <TableCell>{user.email}</TableCell>
-              <TableCell className="capitalize">{user.role}</TableCell>
+          {users.map((userItem) => (
+            <TableRow key={userItem.id}>
+              <TableCell>{userItem.name}</TableCell>
+              <TableCell className="capitalize">{userItem.role}</TableCell>
               <TableCell>
-                {departments.find(d => d.id === user.department_id)?.name || 'None'}
+                {departments.find(d => d.id === userItem.department_id)?.name || 'None'}
+              </TableCell>
+              <TableCell>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    // This is where you could add user role editing functionality
+                    console.log("Edit user:", userItem);
+                  }}
+                >
+                  Edit
+                </Button>
               </TableCell>
             </TableRow>
           ))}
