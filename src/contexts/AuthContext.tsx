@@ -1,5 +1,4 @@
-
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +15,7 @@ type AuthContextType = {
   isManager: boolean;
   isAdmin: boolean;
   userRole: UserRole | null;
+  refreshUserRole: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -28,6 +28,7 @@ const AuthContext = createContext<AuthContextType>({
   isManager: false,
   isAdmin: false,
   userRole: null,
+  refreshUserRole: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -39,55 +40,84 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
 
+  const fetchUserRole = useCallback(async (userId: string) => {
+    try {
+      console.log('Fetching user role for:', userId);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching user role:', error);
+        throw error;
+      }
+
+      if (data) {
+        console.log('Received role data:', data);
+        const role = data.role as UserRole;
+        setUserRole(role);
+        setIsManager(role === 'manager' || role === 'admin');
+        setIsAdmin(role === 'admin');
+      } else {
+        console.log('No role data found');
+        setUserRole(null);
+        setIsManager(false);
+        setIsAdmin(false);
+      }
+    } catch (error) {
+      console.error('Error in fetchUserRole:', error);
+      toast({
+        title: "Error fetching user role",
+        description: "Please try refreshing the page",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
+  const refreshUserRole = useCallback(async () => {
+    if (user) {
+      console.log('Refreshing user role...');
+      await fetchUserRole(user.id);
+    }
+  }, [user, fetchUserRole]);
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event);
         setSession(session);
         setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Defer role fetch to avoid auth deadlock
+          setTimeout(() => {
+            fetchUserRole(session.user.id);
+          }, 0);
+        } else {
+          setUserRole(null);
+          setIsManager(false);
+          setIsAdmin(false);
+        }
       }
     );
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session ? 'Session found' : 'No session');
       setSession(session);
       setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchUserRole(session.user.id);
+      }
       setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    async function fetchUserRole() {
-      if (user) {
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .maybeSingle();
-
-          if (error) {
-            console.error('Error fetching user role:', error);
-          } else if (data) {
-            const role = data.role as UserRole;
-            setUserRole(role);
-            setIsManager(role === 'manager' || role === 'admin');
-            setIsAdmin(role === 'admin');
-          }
-        } catch (error) {
-          console.error('Error in fetchUserRole:', error);
-        }
-      } else {
-        setUserRole(null);
-        setIsManager(false);
-        setIsAdmin(false);
-      }
-    }
-
-    fetchUserRole();
-  }, [user]);
+  }, [fetchUserRole]);
 
   async function signIn(email: string, password: string) {
     try {
@@ -102,6 +132,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           description: error.message,
           variant: "destructive",
         });
+      } else {
+        // Force refresh role after successful sign in
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          await fetchUserRole(session.user.id);
+        }
       }
     } catch (error) {
       console.error(error);
@@ -175,7 +211,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         isManager,
         isAdmin,
-        userRole
+        userRole,
+        refreshUserRole
       }}
     >
       {children}
