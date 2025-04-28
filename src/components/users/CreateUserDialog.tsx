@@ -191,7 +191,7 @@ export function CreateUserDialog({
                 <SelectValue placeholder="Select department" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No Department</SelectItem>
+                <SelectItem value="none">No Department</SelectItem>
                 {departments.map((dept) => (
                   <SelectItem key={dept.id} value={dept.id}>
                     {dept.name}

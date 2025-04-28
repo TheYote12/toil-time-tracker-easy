@@ -28,7 +28,7 @@ export function useUserManagement() {
     password: "",
     name: "",
     role: "employee",
-    department_id: "",
+    department_id: "none",
     manager_id: user?.id || "",
   });
 
@@ -67,6 +67,9 @@ export function useUserManagement() {
         });
         return;
       }
+
+      // Process department_id - convert "none" to null
+      const departmentId = newUser.department_id === "none" ? null : newUser.department_id;
       
       // Create the user with the RPC function
       const { data, error } = await supabase.rpc('create_user_with_profile', {
@@ -74,7 +77,7 @@ export function useUserManagement() {
         password: newUser.password,
         user_role: newUser.role,
         user_name: newUser.name,
-        department_id: newUser.department_id || null,
+        department_id: departmentId,
         manager_id: newUser.manager_id || null
       });
 
@@ -94,7 +97,7 @@ export function useUserManagement() {
         password: "",
         name: "",
         role: "employee",
-        department_id: "",
+        department_id: "none",
         manager_id: user?.id || "",
       });
     } catch (error: any) {
@@ -119,12 +122,17 @@ export function useUserManagement() {
     
     try {
       console.log("Updating user:", editingUser);
+      
+      // Process department_id - ensure "none" is converted to null
+      const departmentId = 
+        editingUser.department_id === "none" ? null : editingUser.department_id;
+      
       const { error } = await supabase
         .from("profiles")
         .update({
           name: editingUser.name,
           role: editingUser.role,
-          department_id: editingUser.department_id || null,
+          department_id: departmentId,
           manager_id: editingUser.manager_id || null
         })
         .eq("id", editingUser.id);

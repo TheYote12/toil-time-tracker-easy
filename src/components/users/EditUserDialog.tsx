@@ -85,13 +85,14 @@ export function EditUserDialog({
           <div className="space-y-2">
             <Label htmlFor="edit-department">Department</Label>
             <Select
-              value={editingUser.department_id || ""}
-              onValueChange={(value) => setEditingUser({ ...editingUser, department_id: value })}
+              value={editingUser.department_id || "none"}
+              onValueChange={(value) => setEditingUser({ ...editingUser, department_id: value === "none" ? null : value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select department" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">No Department</SelectItem>
                 {departments.map((dept) => (
                   <SelectItem key={dept.id} value={dept.id}>
                     {dept.name}
