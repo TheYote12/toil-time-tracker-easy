@@ -5,12 +5,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { OrganizationSettings } from "@/components/SetupWizard/OrganizationSettings";
 import { DepartmentSetup } from "@/components/SetupWizard/DepartmentSetup";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type SetupStep = 'organization' | 'departments' | 'complete';
 
 export default function SetupWizard() {
   const [currentStep, setCurrentStep] = useState<SetupStep>('organization');
   const [progress, setProgress] = useState(33); // Start with first step
+  const [isError, setIsError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
   const { user, isAdmin, isManager } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -29,11 +32,16 @@ export default function SetupWizard() {
         // First check if there's an organization settings record at all
         const { data: orgData, error: orgError } = await supabase
           .from('organization_settings')
-          .select('*');
+          .select('setup_step, setup_completed');
+        
+        if (orgError) {
+          throw orgError;
+        }
         
         // If no organization settings exist yet, create the initial record
         if (!orgData || orgData.length === 0) {
-          await supabase.from('organization_settings').insert({
+          console.log("No organization settings found, creating initial record");
+          const { error: insertError } = await supabase.from('organization_settings').insert({
             name: 'Scene3D',
             setup_step: 'organization',
             setup_completed: false,
@@ -41,22 +49,27 @@ export default function SetupWizard() {
             toil_expiry_days: 90,
             requires_manager_approval: true
           });
+          
+          if (insertError) throw insertError;
+          
           setCurrentStep('organization');
           setProgress(33);
+        } else if (orgData[0]?.setup_completed === true) {
+          // If setup is already complete, redirect to dashboard
+          console.log("Setup is already complete, redirecting to dashboard");
+          navigate('/dashboard');
+          return;
         } else if (orgData[0]?.setup_step) {
           // Otherwise use the existing step
+          console.log("Found setup step:", orgData[0].setup_step);
           const step = orgData[0].setup_step as SetupStep;
           setCurrentStep(step);
           updateProgress(step);
-          
-          // If setup is already complete, redirect to dashboard
-          if (step === 'complete' || orgData[0].setup_completed) {
-            navigate('/dashboard');
-            return;
-          }
         }
       } catch (error) {
         console.error('Error fetching setup status:', error);
+        setIsError(true);
+        setErrorMessage('Failed to fetch setup status. Please refresh the page and try again.');
       } finally {
         setLoading(false);
       }
@@ -76,13 +89,16 @@ export default function SetupWizard() {
 
   const handleStepComplete = async (nextStep: SetupStep) => {
     try {
-      await supabase
+      console.log("Updating setup step to:", nextStep);
+      const { error } = await supabase
         .from('organization_settings')
         .update({ 
           setup_step: nextStep,
           ...(nextStep === 'complete' ? { setup_completed: true } : {})
         })
         .eq('name', 'Scene3D');
+
+      if (error) throw error;
 
       setCurrentStep(nextStep);
       updateProgress(nextStep);
@@ -92,6 +108,8 @@ export default function SetupWizard() {
       }
     } catch (error) {
       console.error('Error updating setup step:', error);
+      setIsError(true);
+      setErrorMessage('Failed to update setup step. Please try again.');
     }
   };
 
@@ -102,6 +120,21 @@ export default function SetupWizard() {
           <h2 className="text-xl font-medium">Loading setup wizard...</h2>
           <div className="w-full bg-gray-200 rounded-full h-2.5">
             <div className="bg-purple-600 h-2.5 rounded-full animate-pulse" style={{width: '100%'}}></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-2xl space-y-4">
+          <Alert variant="destructive">
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+          <div className="flex justify-center">
+            <Button onClick={() => window.location.reload()}>Refresh Page</Button>
           </div>
         </div>
       </div>

@@ -14,6 +14,7 @@ export function OrganizationSettings({ onComplete }: { onComplete: () => void })
     requires_manager_approval: true
   });
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -51,10 +52,15 @@ export function OrganizationSettings({ onComplete }: { onComplete: () => void })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
     try {
+      // Explicitly set the setup_step to 'departments'
       const { error } = await supabase
         .from('organization_settings')
-        .update(settings)
+        .update({
+          ...settings,
+          setup_step: 'departments'
+        })
         .eq('name', 'Scene3D');
 
       if (error) throw error;
@@ -64,7 +70,10 @@ export function OrganizationSettings({ onComplete }: { onComplete: () => void })
         description: "Organization settings updated successfully"
       });
       
-      onComplete();
+      // Wait briefly to ensure the database has updated before proceeding
+      setTimeout(() => {
+        onComplete();
+      }, 500);
     } catch (error) {
       console.error('Error updating settings:', error);
       toast({
@@ -72,6 +81,8 @@ export function OrganizationSettings({ onComplete }: { onComplete: () => void })
         description: "Failed to update organization settings",
         variant: "destructive"
       });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -116,7 +127,9 @@ export function OrganizationSettings({ onComplete }: { onComplete: () => void })
         </div>
       </div>
       
-      <Button type="submit">Save Settings</Button>
+      <Button type="submit" disabled={saving}>
+        {saving ? "Saving..." : "Save Settings"}
+      </Button>
     </form>
   );
 }
