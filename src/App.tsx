@@ -20,6 +20,7 @@ import { NotificationSystem } from "./components/NotificationSystem";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+// Create the QueryClient outside of any component
 const queryClient = new QueryClient();
 
 // Protected route component
@@ -57,7 +58,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => (
   </ProtectedRoute>
 );
 
-// Wrap the initialization of organization settings in a component
+// Separate component for organization initialization
 const OrganizationInitializer = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     async function initializeOrganizationSettings() {
@@ -120,11 +121,12 @@ const OrganizationInitializer = ({ children }: { children: React.ReactNode }) =>
   return <>{children}</>;
 };
 
-const App = () => {
+// Main App component
+function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
+    <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
           <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -191,10 +193,10 @@ const App = () => {
               </Routes>
             </OrganizationInitializer>
           </TooltipProvider>
-        </BrowserRouter>
-      </AuthProvider>
-    </QueryClientProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </BrowserRouter>
   );
-};
+}
 
 export default App;
