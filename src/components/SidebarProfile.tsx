@@ -29,11 +29,6 @@ export default function SidebarProfile() {
       if (error) {
         console.error('Error fetching TOIL submissions:', error);
         setError(error.message);
-        toast({
-          title: "Error loading TOIL data",
-          description: "Please try refreshing",
-          variant: "destructive",
-        });
         return;
       }
 
@@ -52,11 +47,6 @@ export default function SidebarProfile() {
     } catch (error: any) {
       console.error('Error calculating TOIL balance:', error);
       setError(error.message);
-      toast({
-        title: "Error calculating balance",
-        description: "Please try refreshing",
-        variant: "destructive",
-      });
     } finally {
       setIsLoadingBalance(false);
     }

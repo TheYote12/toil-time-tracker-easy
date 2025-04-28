@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth";
@@ -12,7 +12,7 @@ export function useTeamMembers() {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  async function fetchTeamMembers() {
+  const fetchTeamMembers = useCallback(async () => {
     if (!user) return;
     
     setIsLoading(true);
@@ -31,6 +31,8 @@ export function useTeamMembers() {
       if (data) {
         const members = data.filter(profile => profile.manager_id === user.id);
         setTeamMembers(members);
+      } else {
+        setTeamMembers([]);
       }
     } catch (error: any) {
       console.error("Error in fetchTeamMembers:", error);
@@ -43,13 +45,13 @@ export function useTeamMembers() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [user, toast]);
 
   useEffect(() => {
     if (user) {
       fetchTeamMembers();
     }
-  }, [user]);
+  }, [user, fetchTeamMembers]);
 
   return { teamMembers, fetchTeamMembers, isLoading, error };
 }

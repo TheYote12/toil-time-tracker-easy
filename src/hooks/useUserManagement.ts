@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -46,6 +47,28 @@ export function useUserManagement() {
     
     try {
       console.log("Creating new user:", newUser);
+      
+      // Validate email format
+      if (!newUser.email || !newUser.email.includes('@')) {
+        toast({
+          title: "Invalid email format",
+          description: "Please enter a valid email address",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validate password
+      if (!newUser.password || newUser.password.length < 6) {
+        toast({
+          title: "Invalid password",
+          description: "Password must be at least 6 characters long",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Create the user with the RPC function
       const { data, error } = await supabase.rpc('create_user_with_profile', {
         email: newUser.email,
         password: newUser.password,
@@ -101,8 +124,8 @@ export function useUserManagement() {
         .update({
           name: editingUser.name,
           role: editingUser.role,
-          department_id: editingUser.department_id,
-          manager_id: editingUser.manager_id
+          department_id: editingUser.department_id || null,
+          manager_id: editingUser.manager_id || null
         })
         .eq("id", editingUser.id);
 

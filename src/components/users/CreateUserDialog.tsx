@@ -10,7 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User } from "@supabase/supabase-js";
+import { useState } from "react";
+import { AlertCircle } from "lucide-react";
 
 interface Department {
   id: string;
@@ -48,6 +49,54 @@ export function CreateUserDialog({
   setNewUser, 
   departments 
 }: CreateUserDialogProps) {
+  const [validationErrors, setValidationErrors] = useState<{
+    email?: string;
+    password?: string;
+    name?: string;
+  }>({});
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Reset validation errors
+    setValidationErrors({});
+    
+    // Validate form fields
+    const errors: {
+      email?: string;
+      password?: string;
+      name?: string;
+    } = {};
+    
+    // Email validation
+    if (!newUser.email) {
+      errors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(newUser.email)) {
+      errors.email = "Please enter a valid email address";
+    }
+    
+    // Password validation
+    if (!newUser.password) {
+      errors.password = "Password is required";
+    } else if (newUser.password.length < 6) {
+      errors.password = "Password must be at least 6 characters";
+    }
+    
+    // Name validation
+    if (!newUser.name) {
+      errors.name = "Name is required";
+    }
+    
+    // If there are validation errors, don't submit
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+    
+    // Form is valid, proceed with submission
+    onSubmit(e);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -58,37 +107,61 @@ export function CreateUserDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name" className={validationErrors.name ? "text-destructive" : ""}>
+              Name
+            </Label>
             <Input
               id="name"
               value={newUser.name}
               onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-              required
+              className={validationErrors.name ? "border-destructive" : ""}
             />
+            {validationErrors.name && (
+              <div className="text-xs text-destructive flex items-center gap-1">
+                <AlertCircle size={12} />
+                {validationErrors.name}
+              </div>
+            )}
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className={validationErrors.email ? "text-destructive" : ""}>
+              Email
+            </Label>
             <Input
               id="email"
               type="email"
               value={newUser.email}
               onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-              required
+              className={validationErrors.email ? "border-destructive" : ""}
             />
+            {validationErrors.email && (
+              <div className="text-xs text-destructive flex items-center gap-1">
+                <AlertCircle size={12} />
+                {validationErrors.email}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className={validationErrors.password ? "text-destructive" : ""}>
+              Password
+            </Label>
             <Input
               id="password"
               type="password"
               value={newUser.password}
               onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-              required
+              className={validationErrors.password ? "border-destructive" : ""}
             />
+            {validationErrors.password && (
+              <div className="text-xs text-destructive flex items-center gap-1">
+                <AlertCircle size={12} />
+                {validationErrors.password}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -118,6 +191,7 @@ export function CreateUserDialog({
                 <SelectValue placeholder="Select department" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="">No Department</SelectItem>
                 {departments.map((dept) => (
                   <SelectItem key={dept.id} value={dept.id}>
                     {dept.name}

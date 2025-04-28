@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { ReloadIcon } from "@/components/dashboard/ReloadIcon";
 import { toast } from "@/hooks/use-toast";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 type ToilSubmission = {
   id: string;
@@ -129,18 +130,20 @@ const Dashboard = () => {
       <TOILPolicyGuide />
       
       {error && (
-        <div className="bg-red-100 border border-red-300 text-red-700 p-4 rounded mb-4">
-          <h3 className="font-semibold">Error loading data</h3>
-          <p className="text-sm">{error}</p>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleRefresh} 
-            className="mt-2"
-          >
-            Try Again
-          </Button>
-        </div>
+        <Alert variant="destructive" className="mb-4">
+          <AlertTitle>Error loading data</AlertTitle>
+          <AlertDescription>
+            <p>{error}</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRefresh} 
+              className="mt-2"
+            >
+              Try Again
+            </Button>
+          </AlertDescription>
+        </Alert>
       )}
       
       <div className="mb-8">
@@ -185,6 +188,6 @@ const Dashboard = () => {
       )}
     </div>
   );
-};
+}
 
 export default Dashboard;
