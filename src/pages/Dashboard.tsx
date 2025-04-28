@@ -1,133 +1,39 @@
 
-import { useEffect, useState, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
-import { format } from "date-fns";
-import { ManagerAnalyticsPanel } from "@/components/ManagerAnalyticsPanel";
-import { TOILPolicyGuide } from "@/components/TOILPolicyGuide";
 import { NotificationSystem } from "@/components/NotificationSystem";
+import { TOILPolicyGuide } from "@/components/TOILPolicyGuide";
+import { ManagerAnalyticsPanel } from "@/components/ManagerAnalyticsPanel";
 import { UserManagement } from "@/components/UserManagement";
 import { TOILBalance } from "@/components/dashboard/TOILBalance";
 import { TOILChart } from "@/components/dashboard/TOILChart";
 import { ActionButtons } from "@/components/dashboard/ActionButtons";
 import { NoTeamMembers } from "@/components/dashboard/NoTeamMembers";
-import { Button } from "@/components/ui/button";
-import { ReloadIcon } from "@/components/dashboard/ReloadIcon";
-import { toast } from "@/hooks/use-toast";
+import { LoadingState } from "@/components/dashboard/LoadingState";
+import { ErrorState } from "@/components/dashboard/ErrorState";
+import { WelcomeHeader } from "@/components/dashboard/WelcomeHeader";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import { format } from "date-fns";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-
-type ToilSubmission = {
-  id: string;
-  user_id: string;
-  type: 'earn' | 'use';
-  date: string;
-  project: string | null;
-  amount: number;
-  status: 'Pending' | 'Approved' | 'Rejected';
-};
 
 const Dashboard = () => {
-  const { user, isManager, refreshUserRole } = useAuth();
-  const [balance, setBalance] = useState(0);
-  const [recentSubmissions, setRecentSubmissions] = useState<ToilSubmission[]>([]);
-  const { teamMembers, isLoading: isLoadingTeam, error: teamError } = useTeamMembers();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { user, isManager } = useAuth();
+  const { teamMembers, isLoading: isLoadingTeam } = useTeamMembers();
+  const {
+    balance,
+    recentSubmissions,
+    isLoading,
+    isRefreshing,
+    error,
+    handleRefresh
+  } = useDashboardData();
 
-  const fetchDashboardData = async () => {
-    if (!user) return;
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      console.log('Fetching dashboard data for user:', user.id);
-      
-      // First refresh the user role with proper error handling
-      try {
-        await refreshUserRole();
-        console.log('User role refreshed successfully');
-      } catch (error: any) {
-        console.error("Error refreshing user role:", error);
-        toast({
-          title: "Error refreshing role",
-          description: "Some features may be limited",
-          variant: "destructive",
-        });
-      }
-      
-      // Fetch user's own TOIL submissions with error handling
-      try {
-        const { data: submissions, error } = await supabase
-          .from('toil_submissions')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('date', { ascending: false });
-
-        if (error) {
-          console.error('Error fetching submissions:', error);
-          throw error;
-        }
-
-        console.log('Fetched TOIL submissions:', submissions);
-
-        // Calculate balance and set recent submissions
-        let calculatedBalance = 0;
-        for (const sub of submissions || []) {
-          if (sub.status === 'Approved') {
-            if (sub.type === 'earn') calculatedBalance += sub.amount;
-            else if (sub.type === 'use') calculatedBalance -= sub.amount;
-          }
-        }
-        
-        setBalance(calculatedBalance);
-        setRecentSubmissions((submissions || []).slice(0, 6));
-      } catch (error: any) {
-        console.error("Error fetching user submissions:", error);
-        setError(error.message);
-        toast({
-          title: "Error loading submissions",
-          description: error.message || "Please try refreshing the page",
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      console.error("Unexpected error:", error);
-      setError(error.message);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    if (user) {
-      fetchDashboardData();
-    }
-  }, [user]);
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await fetchDashboardData();
-  };
-
-  const chartLineData = useMemo(() => {
-    return recentSubmissions.map(s => ({
-      name: format(new Date(s.date), "MMM d"),
-      TOIL: s.amount,
-    }));
-  }, [recentSubmissions]);
+  const chartLineData = recentSubmissions.map(s => ({
+    name: format(new Date(s.date), "MMM d"),
+    TOIL: s.amount,
+  }));
 
   if (isLoading) {
-    return (
-      <div className="p-6 flex justify-center items-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading dashboard data...</p>
-        </div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (
@@ -135,44 +41,14 @@ const Dashboard = () => {
       <NotificationSystem />
       <TOILPolicyGuide />
       
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertTitle>Error loading data</AlertTitle>
-          <AlertDescription>
-            <p>{error}</p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleRefresh} 
-              className="mt-2"
-            >
-              Try Again
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
+      {error && <ErrorState error={error} onRetry={handleRefresh} />}
       
       <div className="mb-8">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-2xl font-bold">Welcome{user?.user_metadata.name ? `, ${user.user_metadata.name}` : ''}</h2>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleRefresh} 
-            disabled={isRefreshing}
-            className="flex items-center gap-1"
-          >
-            {isRefreshing ? (
-              <>
-                <ReloadIcon className="w-4 h-4 animate-spin" /> Refreshing...
-              </>
-            ) : (
-              <>
-                <ReloadIcon className="w-4 h-4" /> Refresh Data
-              </>
-            )}
-          </Button>
-        </div>
+        <WelcomeHeader 
+          userName={user?.user_metadata.name} 
+          isRefreshing={isRefreshing}
+          onRefresh={handleRefresh}
+        />
         
         <div className="flex items-center gap-4 mb-4">
           <TOILBalance balance={balance} />
