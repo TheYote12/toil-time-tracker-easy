@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -59,8 +60,9 @@ export function UserManagement() {
         
         console.log("Found Alex user:", alexUser);
         
-        if (alexUser) {
-          // Always make sure Alex is admin regardless of current role
+        if (alexUser && alexUser.role !== "admin") {
+          console.log("Alex exists but is not admin. Current role:", alexUser.role);
+          // Update Alex to admin role
           const { error: updateError } = await supabase
             .from("profiles")
             .update({ role: "admin" })
@@ -68,9 +70,22 @@ export function UserManagement() {
             
           if (updateError) {
             console.error("Error updating Alex's role:", updateError);
+            toast({
+              title: "Error updating Alex's role",
+              description: updateError.message,
+              variant: "destructive",
+            });
           } else {
-            console.log("Updated Alex Eason to admin role");
+            console.log("Updated Alex Eason to admin role successfully");
+            toast({
+              title: "Admin Role Updated",
+              description: "Updated Alex Eason to admin role",
+            });
           }
+        } else if (alexUser && alexUser.role === "admin") {
+          console.log("Alex is already an admin, no update needed");
+        } else {
+          console.log("Alex user not found in profiles");
         }
         
         // Refresh profile data after potential update
@@ -105,14 +120,28 @@ export function UserManagement() {
   }
 
   async function fetchDepartments() {
-    const { data: departments, error } = await supabase
-      .from("departments")
-      .select("*");
+    try {
+      const { data: departments, error } = await supabase
+        .from("departments")
+        .select("*");
 
-    if (error) {
-      console.error("Error fetching departments:", error);
-    } else {
-      setDepartments(departments);
+      if (error) {
+        console.error("Error fetching departments:", error);
+        toast({
+          title: "Error fetching departments",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        setDepartments(departments || []);
+      }
+    } catch (error: any) {
+      console.error("Error in fetchDepartments:", error);
+      toast({
+        title: "Error fetching departments",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   }
 
@@ -120,6 +149,7 @@ export function UserManagement() {
     e.preventDefault();
     
     try {
+      console.log("Creating new user:", newUser);
       const { data, error } = await supabase.rpc('create_user_with_profile', {
         email: newUser.email,
         password: newUser.password,
@@ -159,6 +189,7 @@ export function UserManagement() {
   }
   
   function handleEditClick(selectedUser: User) {
+    console.log("Editing user:", selectedUser);
     setEditingUser(selectedUser);
     setShowEditDialog(true);
   }
@@ -168,6 +199,7 @@ export function UserManagement() {
     if (!editingUser) return;
     
     try {
+      console.log("Updating user:", editingUser);
       const { error } = await supabase
         .from("profiles")
         .update({
