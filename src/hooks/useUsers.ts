@@ -23,7 +23,8 @@ export function useUsers() {
     setError(null);
     
     try {
-      // Use RPC function to get profiles data with proper typing
+      // get_all_profiles RPC function should use security definer internally
+      // to avoid recursion issues with RLS policies
       const { data, error } = await supabase
         .rpc('get_all_profiles') as { data: User[] | null; error: Error | null };
 

@@ -14,8 +14,9 @@ export function useUserRole() {
     try {
       console.log('Fetching user role for:', userId);
       
+      // Use get_user_role_safely instead of get_user_role to avoid RLS recursion
       const { data, error } = await supabase
-        .rpc('get_user_role', { user_id: userId });
+        .rpc('get_user_role_safely', { user_id: userId });
 
       if (error) {
         console.error('Error fetching user role:', error);

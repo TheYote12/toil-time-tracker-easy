@@ -217,6 +217,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_admin_or_manager_safely: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
+      is_manager_of: {
+        Args: { manager_id: string; employee_id: string }
+        Returns: boolean
+      }
       remove_department_from_profiles: {
         Args: { department_id_param: string }
         Returns: boolean

@@ -20,6 +20,9 @@ export function useTeamMembers() {
     
     try {
       console.log('Fetching team members for user:', user.id);
+      
+      // The get_all_profiles RPC function should use security definer internally
+      // to avoid recursion issues with RLS policies
       const { data, error } = await supabase
         .rpc('get_all_profiles') as { data: User[] | null; error: Error | null };
 
@@ -30,6 +33,7 @@ export function useTeamMembers() {
       
       if (data) {
         console.log('Received profiles:', data);
+        // Filter profiles to only include those where the current user is the manager
         const members = data.filter(profile => profile.manager_id === user.id);
         console.log('Filtered team members:', members);
         setTeamMembers(members);
