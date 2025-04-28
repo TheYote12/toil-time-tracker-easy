@@ -1,27 +1,11 @@
-
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { UserTable } from "./users/UserTable";
+import { CreateUserDialog } from "./users/CreateUserDialog";
+import { EditUserDialog } from "./users/EditUserDialog";
 
 interface User {
   id: string;
@@ -30,8 +14,6 @@ interface User {
   department_id: string | null;
   manager_id: string | null;
   created_at?: string;
-  // Email is not in the profiles table, we get it from auth.users
-  // but we need it for creating new users
 }
 
 export function UserManagement() {
@@ -58,7 +40,6 @@ export function UserManagement() {
 
   async function fetchUsers() {
     try {
-      // Fetch profiles
       const { data: profiles, error } = await supabase
         .from("profiles")
         .select("*");
@@ -101,7 +82,6 @@ export function UserManagement() {
           throw refreshError;
         }
         
-        // Convert profiles to User[] type
         const userProfiles: User[] = (updatedProfiles || profiles).map(profile => ({
           id: profile.id,
           name: profile.name,
@@ -188,7 +168,6 @@ export function UserManagement() {
     if (!editingUser) return;
     
     try {
-      // Update the user profile
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -226,194 +205,29 @@ export function UserManagement() {
         <Button onClick={() => setShowCreateDialog(true)}>Create User</Button>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Department</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users.map((userItem) => (
-            <TableRow key={userItem.id}>
-              <TableCell>{userItem.name}</TableCell>
-              <TableCell className="capitalize">{userItem.role}</TableCell>
-              <TableCell>
-                {departments.find(d => d.id === userItem.department_id)?.name || 'None'}
-              </TableCell>
-              <TableCell>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleEditClick(userItem)}
-                >
-                  Edit
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <UserTable 
+        users={users} 
+        departments={departments} 
+        onEditUser={handleEditClick} 
+      />
 
-      {/* Create User Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New User</DialogTitle>
-            <DialogDescription>
-              Create a new user account. The user will receive their login credentials.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleCreateUser} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={newUser.name}
-                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={newUser.email}
-                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={newUser.password}
-                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select
-                value={newUser.role}
-                onValueChange={(value) => setNewUser({ ...newUser, role: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="employee">Employee</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="department">Department</Label>
-              <Select
-                value={newUser.department_id}
-                onValueChange={(value) => setNewUser({ ...newUser, department_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select department" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">Create User</Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <CreateUserDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onSubmit={handleCreateUser}
+        newUser={newUser}
+        setNewUser={setNewUser}
+        departments={departments}
+      />
       
-      {/* Edit User Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>
-              Update user information and role.
-            </DialogDescription>
-          </DialogHeader>
-
-          {editingUser && (
-            <form onSubmit={handleUpdateUser} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-name">Name</Label>
-                <Input
-                  id="edit-name"
-                  value={editingUser.name}
-                  onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="edit-role">Role</Label>
-                <Select
-                  value={editingUser.role}
-                  onValueChange={(value) => setEditingUser({ ...editingUser, role: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="employee">Employee</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="edit-department">Department</Label>
-                <Select
-                  value={editingUser.department_id || ""}
-                  onValueChange={(value) => setEditingUser({ ...editingUser, department_id: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id}>
-                        {dept.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Update User</Button>
-              </div>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
+      <EditUserDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        onSubmit={handleUpdateUser}
+        editingUser={editingUser}
+        setEditingUser={setEditingUser}
+        departments={departments}
+      />
     </div>
   );
 }
