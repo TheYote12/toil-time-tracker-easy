@@ -68,14 +68,18 @@ export function UserManagement() {
       }
       
       if (profiles) {
+        console.log("All profiles:", profiles);
+        
         // Check if Alex exists and is admin, if not update him
         const alexUser = profiles.find(profile => 
           profile.name === "Alex Eason" || 
           profile.name.toLowerCase().includes("alex")
         );
         
-        if (alexUser && alexUser.role !== "admin") {
-          // Update Alex to admin
+        console.log("Found Alex user:", alexUser);
+        
+        if (alexUser) {
+          // Always make sure Alex is admin regardless of current role
           const { error: updateError } = await supabase
             .from("profiles")
             .update({ role: "admin" })
