@@ -27,10 +27,11 @@ interface User {
   id: string;
   name: string;
   role: string;
-  email?: string; // Made optional since it may not be in the profiles table directly
   department_id: string | null;
   manager_id: string | null;
-  created_at?: string; // Added to match the profile data structure
+  created_at?: string;
+  // Email is not in the profiles table, we get it from auth.users
+  // but we need it for creating new users
 }
 
 export function UserManagement() {
@@ -70,7 +71,7 @@ export function UserManagement() {
         // Check if Alex exists and is admin, if not update him
         const alexUser = profiles.find(profile => 
           profile.name === "Alex Eason" || 
-          profile.email === "alex@scene3d.co.uk"
+          profile.name.toLowerCase().includes("alex")
         );
         
         if (alexUser && alexUser.role !== "admin") {
