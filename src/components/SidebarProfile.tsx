@@ -4,6 +4,7 @@ import { User as UserIcon, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export default function SidebarProfile() {
   const { user, isManager, signOut, refreshUserRole } = useAuth();
@@ -20,36 +21,19 @@ export default function SidebarProfile() {
     
     try {
       console.log('Calculating balance for user:', user.id);
+      
+      // Use the RPC function to get already approved submissions
       const { data, error } = await supabase
-        .from('toil_submissions')
-        .select('type, amount')
-        .eq('user_id', user.id)
-        .eq('status', 'Approved');
+        .rpc('get_toil_balance', { user_id_param: user.id });
 
       if (error) {
-        console.error('Error fetching TOIL submissions:', error);
+        console.error('Error calculating TOIL balance:', error);
         setError(error.message);
         return;
       }
 
-      if (!data) {
-        console.log('No TOIL submissions found');
-        setBalance(0);
-        return;
-      }
-
-      // Calculate balance
-      let calculatedBalance = 0;
-      for (const submission of data) {
-        if (submission.type === 'earn') {
-          calculatedBalance += submission.amount;
-        } else if (submission.type === 'use') {
-          calculatedBalance -= submission.amount;
-        }
-      }
-
-      console.log('Calculated TOIL balance:', calculatedBalance);
-      setBalance(calculatedBalance);
+      console.log('Calculated TOIL balance from RPC:', data);
+      setBalance(data || 0);
       setError(null);
     } catch (error: any) {
       console.error('Error calculating TOIL balance:', error);
@@ -102,7 +86,9 @@ export default function SidebarProfile() {
   return (
     <div className="flex flex-col px-2 py-3 rounded bg-gray-100 mb-1 min-h-[56px]">
       <div className="flex items-center gap-3">
-        <UserIcon className="w-8 h-8 text-purple-500" aria-hidden="true" />
+        <Avatar className="h-10 w-10 bg-purple-100">
+          <AvatarFallback className="text-purple-500">{user.user_metadata.name?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
+        </Avatar>
         <div className="flex-grow">
           <div className="font-semibold text-gray-800">{user.user_metadata.name || user.email}</div>
           <div className="text-xs text-gray-500 capitalize">{isManager ? 'Manager' : 'Employee'}</div>

@@ -43,11 +43,24 @@ export function useDashboardData() {
       }
       
       try {
+        // Get the TOIL balance using RPC
+        const { data: balanceData, error: balanceError } = await supabase
+          .rpc('get_toil_balance', { user_id_param: user.id });
+          
+        if (balanceError) {
+          console.error('Error fetching TOIL balance:', balanceError);
+          throw balanceError;
+        }
+        
+        setBalance(balanceData || 0);
+        
+        // Get recent submissions
         const { data: submissions, error } = await supabase
           .from('toil_submissions')
           .select('*')
           .eq('user_id', user.id)
-          .order('date', { ascending: false });
+          .order('date', { ascending: false })
+          .limit(6);
 
         if (error) {
           console.error('Error fetching submissions:', error);
@@ -55,17 +68,8 @@ export function useDashboardData() {
         }
 
         console.log('Fetched TOIL submissions:', submissions);
-
-        let calculatedBalance = 0;
-        for (const sub of submissions || []) {
-          if (sub.status === 'Approved') {
-            if (sub.type === 'earn') calculatedBalance += sub.amount;
-            else if (sub.type === 'use') calculatedBalance -= sub.amount;
-          }
-        }
         
-        setBalance(calculatedBalance);
-        setRecentSubmissions((submissions || []).slice(0, 6));
+        setRecentSubmissions(submissions || []);
       } catch (error: any) {
         console.error("Error fetching user submissions:", error);
         setError(error.message);
