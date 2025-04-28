@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { ManagerAnalyticsPanel } from "@/components/ManagerAnalyticsPanel";
 import { TOILPolicyGuide } from "@/components/TOILPolicyGuide";
 import { NotificationSystem } from "@/components/NotificationSystem";
+import { UserManagement } from "@/components/UserManagement";
 
 type ToilSubmission = {
   id: string;
@@ -204,6 +205,7 @@ const Dashboard = () => {
       {isManager && (
         <div className="mb-8 space-y-4">
           <ManagerAnalyticsPanel />
+          <UserManagement />
         </div>
       )}
 

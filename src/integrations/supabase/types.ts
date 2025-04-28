@@ -179,6 +179,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      create_user_with_profile: {
+        Args: {
+          email: string
+          password: string
+          user_role: string
+          user_name: string
+          department_id?: string
+          manager_id?: string
+        }
+        Returns: string
+      }
       is_admin_or_manager: {
         Args: Record<PropertyKey, never>
         Returns: boolean
