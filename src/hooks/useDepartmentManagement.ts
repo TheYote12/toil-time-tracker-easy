@@ -11,7 +11,7 @@ interface EditingDepartment extends Department {
 
 export function useDepartmentManagement() {
   const { departments, fetchDepartments, isLoading: isLoadingDepartments, error: departmentsError } = useDepartments();
-  const { users, isLoading: isLoadingUsers } = useUsers();
+  const { users, fetchUsers, isLoading: isLoadingUsers } = useUsers();
   const { toast } = useToast();
   
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -34,6 +34,7 @@ export function useDepartmentManagement() {
   const refreshData = async () => {
     setIsRefreshing(true);
     await fetchDepartments();
+    await fetchUsers();
     setIsRefreshing(false);
   };
 
@@ -116,13 +117,13 @@ export function useDepartmentManagement() {
     if (!editingDepartment) return;
     
     try {
-      // First, update any users in this department to have null department_id
-      const { error: userError } = await supabase
-        .from("profiles")
-        .update({ department_id: null })
-        .eq("department_id", editingDepartment.id);
-        
-      if (userError) throw userError;
+      // Instead of directly updating profiles, use our RPC function to avoid RLS recursion
+      const { error: rpcError } = await supabase.rpc(
+        'remove_department_from_profiles', 
+        { department_id_param: editingDepartment.id }
+      );
+      
+      if (rpcError) throw rpcError;
       
       // Then delete the department
       const { error } = await supabase
@@ -152,10 +153,14 @@ export function useDepartmentManagement() {
 
   async function handleAssignUserToDepartment(userId: string, departmentId: string | null) {
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ department_id: departmentId })
-        .eq("id", userId);
+      // Use the safe function to update user department
+      const { error } = await supabase.rpc(
+        'update_user_department', 
+        { 
+          user_id_param: userId, 
+          department_id_param: departmentId 
+        }
+      );
 
       if (error) throw error;
 
@@ -166,6 +171,7 @@ export function useDepartmentManagement() {
       
       // If we're in edit mode, refresh the editing department's members
       if (editingDepartment && departmentId === editingDepartment.id) {
+        await fetchUsers();
         setEditingDepartment({
           ...editingDepartment,
           members: getDepartmentMembers(editingDepartment.id)
