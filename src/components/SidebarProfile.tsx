@@ -1,46 +1,47 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { User as UserIcon } from "lucide-react";
+import { User as UserIcon, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function SidebarProfile() {
-  const { user, isManager, signOut } = useAuth();
+  const { user, isManager, signOut, refreshUserRole } = useAuth();
   const [balance, setBalance] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    async function calculateBalance() {
-      if (!user) return;
+  const calculateBalance = async () => {
+    if (!user) return;
 
-      try {
-        // Get approved submissions for the user
-        const { data: submissions, error } = await supabase
-          .from('toil_submissions')
-          .select('type, amount')
-          .eq('user_id', user.id)
-          .eq('status', 'Approved');
+    try {
+      // Get approved submissions for the user
+      const { data: submissions, error } = await supabase
+        .from('toil_submissions')
+        .select('type, amount')
+        .eq('user_id', user.id)
+        .eq('status', 'Approved');
 
-        if (error) {
-          console.error('Error fetching TOIL submissions:', error);
-          return;
-        }
-
-        // Calculate balance
-        let calculatedBalance = 0;
-        for (const submission of submissions || []) {
-          if (submission.type === 'earn') {
-            calculatedBalance += submission.amount;
-          } else if (submission.type === 'use') {
-            calculatedBalance -= submission.amount;
-          }
-        }
-
-        setBalance(calculatedBalance);
-      } catch (error) {
-        console.error('Error calculating TOIL balance:', error);
+      if (error) {
+        console.error('Error fetching TOIL submissions:', error);
+        return;
       }
-    }
 
+      // Calculate balance
+      let calculatedBalance = 0;
+      for (const submission of submissions || []) {
+        if (submission.type === 'earn') {
+          calculatedBalance += submission.amount;
+        } else if (submission.type === 'use') {
+          calculatedBalance -= submission.amount;
+        }
+      }
+
+      setBalance(calculatedBalance);
+    } catch (error) {
+      console.error('Error calculating TOIL balance:', error);
+    }
+  };
+  
+  useEffect(() => {
     calculateBalance();
   }, [user]);
 
@@ -51,6 +52,20 @@ export default function SidebarProfile() {
     const m = minutes % 60;
     return `${h}:${m.toString().padStart(2, "0")}`;
   }
+  
+  const handleRefresh = async () => {
+    if (!user || isRefreshing) return;
+    
+    setIsRefreshing(true);
+    try {
+      await refreshUserRole();
+      await calculateBalance();
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   if (!user) return null;
 
@@ -58,11 +73,19 @@ export default function SidebarProfile() {
     <div className="flex flex-col px-2 py-3 rounded bg-gray-100 mb-1 min-h-[56px]">
       <div className="flex items-center gap-3">
         <UserIcon className="w-8 h-8 text-purple-500" aria-hidden="true" />
-        <div>
+        <div className="flex-grow">
           <div className="font-semibold text-gray-800">{user.user_metadata.name || user.email}</div>
           <div className="text-xs text-gray-500 capitalize">{isManager ? 'Manager' : 'Employee'}</div>
           <div className="text-xs text-purple-600 font-mono">TOIL: {minToHM(balance)}</div>
         </div>
+        <button
+          onClick={handleRefresh}
+          className="text-gray-500 hover:text-purple-600 p-1 rounded-full hover:bg-purple-50"
+          aria-label="Refresh profile"
+          disabled={isRefreshing}
+        >
+          <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
+        </button>
       </div>
       <button 
         onClick={signOut} 

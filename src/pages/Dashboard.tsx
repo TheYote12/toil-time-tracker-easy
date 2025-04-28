@@ -11,6 +11,9 @@ import { TOILBalance } from "@/components/dashboard/TOILBalance";
 import { TOILChart } from "@/components/dashboard/TOILChart";
 import { ActionButtons } from "@/components/dashboard/ActionButtons";
 import { NoTeamMembers } from "@/components/dashboard/NoTeamMembers";
+import { Button } from "@/components/ui/button";
+import { ReloadIcon } from "@/components/dashboard/ReloadIcon";
+import { toast } from "@/hooks/use-toast";
 
 type ToilSubmission = {
   id: string;
@@ -23,63 +26,79 @@ type ToilSubmission = {
 };
 
 const Dashboard = () => {
-  const { user, isManager } = useAuth();
+  const { user, isManager, refreshUserRole } = useAuth();
   const [balance, setBalance] = useState(0);
   const [recentSubmissions, setRecentSubmissions] = useState<ToilSubmission[]>([]);
   const [teamMembers, setTeamMembers] = useState<{ id: string; name: string; }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchDashboardData = async () => {
+    if (!user) return;
+    setIsLoading(true);
+
+    try {
+      // First refresh the user role
+      await refreshUserRole();
+      
+      // Fetch user's own TOIL submissions
+      const { data: submissions, error } = await supabase
+        .from('toil_submissions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false });
+
+      if (error) {
+        console.error("Error fetching user submissions:", error);
+        toast({
+          title: "Error loading submissions",
+          description: "Please try refreshing the page",
+          variant: "destructive",
+        });
+      } else {
+        // Calculate balance and set recent submissions
+        let calculatedBalance = 0;
+        for (const sub of submissions || []) {
+          if (sub.status === 'Approved') {
+            if (sub.type === 'earn') calculatedBalance += sub.amount;
+            else if (sub.type === 'use') calculatedBalance -= sub.amount;
+          }
+        }
+        
+        setBalance(calculatedBalance);
+        setRecentSubmissions((submissions || []).slice(0, 6));
+      }
+
+      if (isManager) {
+        const { data: members, error: membersError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('manager_id', user.id);
+
+        if (membersError) {
+          console.error("Error fetching team members:", membersError);
+        } else {
+          setTeamMembers(members || []);
+        }
+      }
+    } catch (error) {
+      console.error("Unexpected error:", error);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    if (!user) return;
-
-    async function fetchDashboardData() {
-      setIsLoading(true);
-
-      try {
-        // Fetch user's own TOIL submissions
-        const { data: submissions, error } = await supabase
-          .from('toil_submissions')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('date', { ascending: false });
-
-        if (error) {
-          console.error("Error fetching user submissions:", error);
-        } else {
-          // Calculate balance and set recent submissions
-          let calculatedBalance = 0;
-          for (const sub of submissions || []) {
-            if (sub.status === 'Approved') {
-              if (sub.type === 'earn') calculatedBalance += sub.amount;
-              else if (sub.type === 'use') calculatedBalance -= sub.amount;
-            }
-          }
-          
-          setBalance(calculatedBalance);
-          setRecentSubmissions((submissions || []).slice(0, 6));
-        }
-
-        if (isManager) {
-          const { data: members, error: membersError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('manager_id', user.id);
-
-          if (membersError) {
-            console.error("Error fetching team members:", membersError);
-          } else {
-            setTeamMembers(members || []);
-          }
-        }
-      } catch (error) {
-        console.error("Unexpected error:", error);
-      } finally {
-        setIsLoading(false);
-      }
+    if (user) {
+      fetchDashboardData();
     }
+  }, [user]);
 
-    fetchDashboardData();
-  }, [user, isManager]);
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchDashboardData();
+  };
 
   const chartLineData = useMemo(() => {
     return recentSubmissions.map(s => ({
@@ -105,7 +124,27 @@ const Dashboard = () => {
       <TOILPolicyGuide />
       
       <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-2">Welcome{user?.user_metadata.name ? `, ${user.user_metadata.name}` : ''}</h2>
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-2xl font-bold">Welcome{user?.user_metadata.name ? `, ${user.user_metadata.name}` : ''}</h2>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh} 
+            disabled={isRefreshing}
+            className="flex items-center gap-1"
+          >
+            {isRefreshing ? (
+              <>
+                <ReloadIcon className="w-4 h-4 animate-spin" /> Refreshing...
+              </>
+            ) : (
+              <>
+                <ReloadIcon className="w-4 h-4" /> Refresh Data
+              </>
+            )}
+          </Button>
+        </div>
+        
         <div className="flex items-center gap-4 mb-4">
           <TOILBalance balance={balance} />
         </div>
