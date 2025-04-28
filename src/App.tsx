@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,6 +11,7 @@ import LogExtraHours from "./pages/LogExtraHours";
 import RequestTOIL from "./pages/RequestTOIL";
 import Approvals from "./pages/Approvals";
 import ToilHistory from "./pages/ToilHistory";
+import Departments from "./pages/Departments";
 import Auth from "./pages/Auth";
 import { AppSidebar } from "./components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -169,6 +171,14 @@ const App = () => {
                 element={
                   <AppLayout>
                     <ToilHistory />
+                  </AppLayout>
+                }
+              />
+              <Route
+                path="/departments"
+                element={
+                  <AppLayout>
+                    <Departments />
                   </AppLayout>
                 }
               />

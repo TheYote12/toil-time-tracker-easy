@@ -1,6 +1,7 @@
+
 import { SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { useLocation, Link } from "react-router-dom";
-import { List, Clock, FileText, Users } from "lucide-react";
+import { List, Clock, FileText, Users, FolderOpen } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 
 const navItems = [
@@ -9,6 +10,7 @@ const navItems = [
   { title: "Request TOIL", icon: FileText, to: "/request-toil" },
   { title: "Approvals", icon: Users, to: "/approvals", managerOnly: true },
   { title: "TOIL History", icon: Clock, to: "/toil-history" },
+  { title: "Departments", icon: FolderOpen, to: "/departments", managerOnly: true },
 ];
 
 export default function SidebarNav() {
