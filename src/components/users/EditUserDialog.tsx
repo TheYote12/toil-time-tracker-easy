@@ -33,6 +33,7 @@ interface EditUserDialogProps {
   editingUser: User | null;
   setEditingUser: React.Dispatch<React.SetStateAction<User | null>>;
   departments: Department[];
+  managers?: User[];
 }
 
 export function EditUserDialog({
@@ -42,6 +43,7 @@ export function EditUserDialog({
   editingUser,
   setEditingUser,
   departments,
+  managers = [],
 }: EditUserDialogProps) {
   if (!editingUser) return null;
 
@@ -108,6 +110,28 @@ export function EditUserDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {editingUser.role === 'employee' && (
+            <div className="space-y-2">
+              <Label htmlFor="edit-manager">Manager</Label>
+              <Select
+                value={editingUser.manager_id || "none"}
+                onValueChange={(value) => setEditingUser({ ...editingUser, manager_id: value === "none" ? null : value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select manager" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Manager</SelectItem>
+                  {managers.map((manager) => (
+                    <SelectItem key={manager.id} value={manager.id}>
+                      {manager.name} ({manager.role})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

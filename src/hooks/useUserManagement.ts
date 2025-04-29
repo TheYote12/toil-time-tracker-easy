@@ -32,6 +32,9 @@ export function useUserManagement() {
     manager_id: user?.id || "",
   });
 
+  // Filter users with manager or admin role for the managers list
+  const managers = users.filter(user => ['manager', 'admin'].includes(user.role));
+
   // Combine loading states
   const isLoading = isLoadingUsers || isLoadingDepartments;
   
@@ -160,6 +163,7 @@ export function useUserManagement() {
   return {
     users,
     departments,
+    managers,
     showCreateDialog,
     setShowCreateDialog,
     showEditDialog,

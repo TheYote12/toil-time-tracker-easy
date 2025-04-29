@@ -11,6 +11,7 @@ export function UserManagement() {
   const {
     users,
     departments,
+    managers,
     showCreateDialog,
     setShowCreateDialog,
     showEditDialog,
@@ -88,6 +89,7 @@ export function UserManagement() {
         editingUser={editingUser}
         setEditingUser={setEditingUser}
         departments={departments}
+        managers={managers}
       />
     </div>
   );
