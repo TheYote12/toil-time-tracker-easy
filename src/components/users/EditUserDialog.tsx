@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AlertCircle } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -80,6 +81,12 @@ export function EditUserDialog({
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
+            {editingUser.role === 'admin' && (
+              <div className="text-xs text-amber-600 flex items-center gap-1 mt-1">
+                <AlertCircle size={12} />
+                Admins have full system access
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
